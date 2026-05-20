@@ -204,6 +204,7 @@
 
   <footer>&copy; 2026 CivicTrack &nbsp;|&nbsp; Smart Civic Management Platform</footer>
 
+  <script src="bridge.js"></script>
   <script>
     /* ══════════════════════════════════════════════════
        DASHBOARD INIT
@@ -229,8 +230,14 @@
       { id: 'CT-2025-0021', type: 'Garbage Overflow', filed: '20 Feb 2025', status: 'In Progress', icon: '🗑️', progress: 3 }
     ];
 
-    /* Read user-filed complaints */
-    var userComplaints = JSON.parse(sessionStorage.getItem('userComplaints') || '[]');
+    /* Read user-filed complaints — prefer localStorage (kept up to date by admin actions)
+       and fall back to sessionStorage for any entries not yet persisted */
+    var lsComplaints  = CivicBridge.loadComplaints();
+    var lsIds = {};
+    lsComplaints.forEach(function(c) { lsIds[c.id] = true; });
+    var sessionComplaints = JSON.parse(sessionStorage.getItem('userComplaints') || '[]');
+    var sessionOnly = sessionComplaints.filter(function(c) { return !lsIds[c.id]; });
+    var userComplaints = lsComplaints.concat(sessionOnly);
 
     /* Combine: user complaints first (newest), then demo ones below */
     var allComplaints = userComplaints.map(function(c) {
@@ -383,16 +390,24 @@
     var notifHTML = '';
     var unreadCount = 0;
 
-    /* Show notification for each user-filed complaint */
+    /* Show notification for each user-filed complaint with its actual current status */
     for (var n = 0; n < Math.min(userComplaints.length, 3); n++) {
       var uc = userComplaints[n];
+      var ucStatus = uc.status || 'Pending';
+      var isResolved = ucStatus === 'resolved' || ucStatus === 'Resolved';
+      var notifClass = isResolved ? 'notif-item' : 'notif-item unread';
+      var statusDisplay = isResolved ? 'Resolved ✅' : (ucStatus === 'In Progress' || ucStatus === 'progress') ? 'In Progress 🔧' : 'Pending ⏳';
+      var notifTitle = isResolved ? uc.id + ' Resolved' : uc.id + ' Filed';
+      var notifMsg = isResolved
+        ? 'Your <strong>' + uc.type + '</strong> complaint has been <strong>resolved</strong>.'
+        : 'Your <strong>' + uc.type + '</strong> complaint is currently <strong>' + statusDisplay + '</strong>.';
       notifHTML +=
-        '<div class="notif-item unread">' +
-          '<span class="ni-icon">' + uc.icon + '</span>' +
+        '<div class="' + notifClass + '">' +
+          '<span class="ni-icon">' + (uc.icon || '📋') + '</span>' +
           '<div class="ni-body">' +
-            '<h5>' + uc.id + ' Filed</h5>' +
-            '<p>Your <strong>' + uc.type + '</strong> complaint has been registered and is <strong>Pending</strong> review.</p>' +
-            '<div class="ni-time">' + uc.filed + '</div>' +
+            '<h5>' + notifTitle + '</h5>' +
+            '<p>' + notifMsg + '</p>' +
+            '<div class="ni-time">' + (uc.filed || '') + '</div>' +
           '</div>' +
         '</div>';
       unreadCount++;

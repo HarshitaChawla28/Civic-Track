@@ -47,6 +47,7 @@ var CivicBridge = (function () {
   /* ── Update an existing complaint (from admincomp.html) ── */
   function updateComplaint(id, changes) {
     try {
+      /* Update localStorage (admin source of truth) */
       var all = loadComplaints();
       for (var i = 0; i < all.length; i++) {
         if (all[i].id === id) {
@@ -59,6 +60,34 @@ var CivicBridge = (function () {
         }
       }
       localStorage.setItem(STORAGE_KEY, JSON.stringify(all));
+
+      /* Also sync sessionStorage so track.html / track1.html reflect changes */
+      try {
+        var session = JSON.parse(sessionStorage.getItem('userComplaints') || '[]');
+        var found = false;
+        for (var j = 0; j < session.length; j++) {
+          if (session[j].id === id) {
+            for (var key in changes) {
+              if (changes.hasOwnProperty(key)) {
+                session[j][key] = changes[key];
+              }
+            }
+            found = true;
+            break;
+          }
+        }
+        /* If not in sessionStorage yet, pull the updated record from localStorage */
+        if (!found) {
+          var updated = all.filter(function(c) { return c.id === id; })[0];
+          if (updated) {
+            session.unshift(updated);
+          }
+        }
+        sessionStorage.setItem('userComplaints', JSON.stringify(session));
+      } catch (se) {
+        console.warn('CivicBridge: Failed to sync sessionStorage', se);
+      }
+
       return true;
     } catch (e) {
       console.warn('CivicBridge: Failed to update complaint', e);

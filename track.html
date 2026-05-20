@@ -42,6 +42,7 @@
   </div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="bridge.js"></script>
   <script>
 
     /* ══════════════════════════════════════════════════
@@ -144,9 +145,17 @@
        MERGE: hardcoded + user-filed from sessionStorage
     ══════════════════════════════════════════════════ */
     function getAllComplaints() {
-      var userComplaints = JSON.parse(sessionStorage.getItem('userComplaints') || '[]');
-      /* User complaints take priority (listed first), then hardcoded */
-      return userComplaints.concat(hardcodedComplaints);
+      /* Read from localStorage (kept in sync by bridge.js) so admin
+         resolve/escalate actions are reflected here immediately. */
+      var lsComplaints = CivicBridge.loadComplaints();
+      var lsIds = {};
+      lsComplaints.forEach(function(c) { lsIds[c.id] = true; });
+
+      /* Include sessionStorage entries not yet in localStorage */
+      var sessionComplaints = JSON.parse(sessionStorage.getItem('userComplaints') || '[]');
+      var sessionOnly = sessionComplaints.filter(function(c) { return !lsIds[c.id]; });
+
+      return lsComplaints.concat(sessionOnly).concat(hardcodedComplaints);
     }
 
     var map = null;

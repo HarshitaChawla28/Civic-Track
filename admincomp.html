@@ -887,10 +887,8 @@
         COMPLAINTS[i].status   = 'resolved';
         COMPLAINTS[i].priority = 'low';
         COMPLAINTS[i].progress = 100;
-        /* Persist update for citizen-filed complaints */
-        if (COMPLAINTS[i].fromCitizen) {
-          CivicBridge.updateComplaint(id, { status: 'resolved', priority: 'low', progress: 100 });
-        }
+        /* Persist update so citizen tracking pages reflect this */
+        CivicBridge.updateComplaint(id, { status: 'resolved', priority: 'low', progress: 100 });
         break;
       }
     }
@@ -906,9 +904,8 @@
         var cur = levels.indexOf(COMPLAINTS[i].priority);
         if (cur < 3) {
           COMPLAINTS[i].priority = levels[cur + 1];
-          if (COMPLAINTS[i].fromCitizen) {
-            CivicBridge.updateComplaint(id, { priority: COMPLAINTS[i].priority });
-          }
+          /* Persist update so citizen tracking pages reflect this */
+          CivicBridge.updateComplaint(id, { priority: COMPLAINTS[i].priority, status: COMPLAINTS[i].status });
         }
         break;
       }
