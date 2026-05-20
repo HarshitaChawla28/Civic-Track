@@ -1,0 +1,984 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Complaint Command — CivicTrack Admin</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="css/admincomp.css">
+</head>
+<body>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- NEW COMPLAINT NOTIFICATION BADGE -->
+<div id="new-badge" style="
+  display:none;
+  position:fixed;top:72px;right:20px;z-index:9999;
+  background:#16C784;color:#fff;
+  padding:10px 18px;border-radius:10px;
+  font-size:13px;font-weight:600;
+  box-shadow:0 4px 20px rgba(22,199,132,.4);
+  animation: fadeSlide .4s ease;
+">
+  🔔 <span id="new-badge-text">New citizen report received</span>
+</div>
+
+<!-- MODAL -->
+<div class="modal-bg" id="modal-bg" onclick="onModalBgClick(event)">
+  <div class="modal" id="modal">
+    <div class="modal-head">
+      <div>
+        <h2 id="m-title">Complaint Detail</h2>
+        <p id="m-sub">Loading...</p>
+      </div>
+      <button class="close-btn" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-map" id="m-map"></div>
+      <div class="detail-grid" id="m-detail-grid"></div>
+      <div class="modal-desc" id="m-desc"></div>
+      <div class="modal-timeline">
+        <h3>Resolution Timeline</h3>
+        <div class="tl-wrap" id="m-timeline"></div>
+      </div>
+      <div class="modal-actions" id="m-actions"></div>
+    </div>
+  </div>
+</div>
+
+<!-- HEADER -->
+<header>
+  <div class="header-inner">
+    <div class="logo-group">
+      <div class="logo-badge">
+        <div class="logo-icon">⚡</div>
+        CivicTrack
+      </div>
+      <span class="admin-pill">Admin Console</span>
+    </div>
+    <div class="header-right">
+      <div class="live-indicator">
+        <div class="live-dot"></div>
+        Live Feed
+      </div>
+      <div class="header-admin">
+        <div class="admin-av">A</div>
+        Admin · Ward 12
+      </div>
+      <a href="adminmain.html" class="nav-link">← Back</a>
+    </div>
+  </div>
+</header>
+
+<!-- COMMAND BANNER -->
+<div class="command-banner">
+  <div class="banner-content">
+    <div class="banner-left">
+      <h1>Complaint <span>Command Centre</span></h1>
+      <p>Ward 12, Mumbai — Priority-sorted civic issue management</p>
+    </div>
+    <div class="banner-stats" id="banner-stats">
+      <!-- Rendered by JS -->
+    </div>
+  </div>
+</div>
+
+<!-- TOOLBAR -->
+<div class="toolbar">
+  <div class="filter-group" id="filter-group">
+    <button class="fbtn active" onclick="setFilter('all', this)">All Issues</button>
+    <button class="fbtn crit" onclick="setFilter('critical', this)">⬤ Critical</button>
+    <button class="fbtn high" onclick="setFilter('high', this)">⬤ High</button>
+    <button class="fbtn" onclick="setFilter('medium', this)">⬤ Medium</button>
+    <button class="fbtn" onclick="setFilter('low', this)">⬤ Low</button>
+    <button class="fbtn" onclick="setFilter('pending', this)">Pending</button>
+    <button class="fbtn" onclick="setFilter('progress', this)">In Progress</button>
+    <button class="fbtn" onclick="setFilter('resolved', this)">Resolved</button>
+    <button class="fbtn" onclick="setFilter('citizen', this)" style="border-color:#16C784;color:#16C784;">🙋 Citizen Filed</button>
+  </div>
+  <input class="search-box" type="text" id="search-input"
+         placeholder="Search by ID, type, location..." oninput="onSearch(this.value)" />
+  <select class="sort-select" id="sort-select" onchange="onSort(this.value)">
+    <option value="priority">Sort: Priority</option>
+    <option value="date">Sort: Newest</option>
+    <option value="days">Sort: Days Open</option>
+    <option value="ward">Sort: Ward</option>
+  </select>
+  <div class="result-count">Showing <span id="result-count">0</span> complaints</div>
+</div>
+
+<!-- MAIN BODY -->
+<div class="page-body" id="page-body">
+  <!-- Rendered by JS -->
+</div>
+
+<style>
+  @keyframes fadeSlide {
+    from { opacity: 0; transform: translateY(-10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .citizen-badge {
+    display:inline-block;
+    background:rgba(22,199,132,.15);
+    color:#16C784;
+    font-size:10px;
+    font-weight:700;
+    padding:2px 7px;
+    border-radius:5px;
+    border:1px solid rgba(22,199,132,.3);
+    margin-left:6px;
+    vertical-align:middle;
+    letter-spacing:.5px;
+  }
+</style>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<!-- ✅ CIVIC BRIDGE — loads user-submitted complaints from localStorage -->
+<script src="bridge.js"></script>
+
+<script>
+
+  /* ══════════════════════════════════════════════════
+     SEED / HARDCODED COMPLAINTS (always present)
+  ══════════════════════════════════════════════════ */
+
+  var SEED_COMPLAINTS = [
+    {
+      id: 'CT-2025-0041',
+      type: 'Road Collapse',
+      icon: '🛣️',
+      iconBg: 'rgba(255,59,59,.12)',
+      priority: 'critical',
+      status: 'progress',
+      title: 'Major Road Collapse — SV Road',
+      location: 'SV Road Signal, Near Shoppers Stop, Andheri West',
+      ward: 'Ward 12',
+      lat: 19.1197,
+      lng: 72.8464,
+      filed: '12 Mar 2025',
+      daysOpen: 10,
+      reporter: 'Rahul Kumar',
+      reporterInit: 'R',
+      assignedTo: 'Roads & Infrastructure Dept.',
+      dept: 'MCGM Roads',
+      deptContact: '1800-222-0041',
+      progress: 60,
+      affectedRadius: '3km',
+      affectedPeople: '~4,200',
+      severity: 9,
+      desc: 'A significant section of SV Road near the Shoppers Stop signal has collapsed, creating a crater approximately 4 metres wide and 1.5 metres deep. Heavy rainfall has worsened the damage. Two-wheelers have already sustained damage and pedestrian access is compromised. Emergency barriers have been placed but are insufficient.',
+      tags: ['Road', 'Traffic', 'Emergency', 'Monsoon Damage'],
+      timeline: [
+        { s: 'done',   step: 'Filed & Logged',      time: '12 Mar, 9:14 AM',  note: 'Received via CivicTrack citizen report.' },
+        { s: 'done',   step: 'Admin Verified',       time: '12 Mar, 11:30 AM', note: 'On-ground inspection confirmed.' },
+        { s: 'done',   step: 'Escalated — Critical', time: '12 Mar, 1:00 PM',  note: 'Priority elevated. Roads Dept. alerted.' },
+        { s: 'active', step: 'Repair Crew Deployed', time: '13 Mar, 8:00 AM',  note: '6-member team with equipment on site.' },
+        { s: 'wait',   step: 'Quality Inspection',   time: 'Scheduled: 18 Mar', note: '' },
+        { s: 'wait',   step: 'Closed',               time: 'ETA: 20 Mar',       note: '' }
+      ]
+    },
+    {
+      id: 'CT-2025-0039',
+      type: 'Water Main Break',
+      icon: '💧',
+      iconBg: 'rgba(255,59,59,.12)',
+      priority: 'critical',
+      status: 'pending',
+      title: 'Burst Water Main — Lokhandwala',
+      location: 'Lokhandwala Complex, Near D-Mart, Andheri West',
+      ward: 'Ward 12',
+      lat: 19.1340,
+      lng: 72.8296,
+      filed: '20 Mar 2025',
+      daysOpen: 2,
+      reporter: 'Priya Mehta',
+      reporterInit: 'P',
+      assignedTo: 'Unassigned',
+      dept: 'Water Supply Dept.',
+      deptContact: '1800-222-0039',
+      progress: 15,
+      affectedRadius: '500m',
+      affectedPeople: '~1,800',
+      severity: 10,
+      desc: 'A major water main has burst at the Lokhandwala Complex junction, flooding the road to about 30cm depth and cutting water supply to 3 residential buildings. The break appears to be in a 150mm diameter main. Raw sewage mixing suspected. Immediate intervention required to prevent contamination.',
+      tags: ['Water', 'Flooding', 'Contamination Risk', 'Urgent'],
+      timeline: [
+        { s: 'done',  step: 'Filed & Logged',   time: '20 Mar, 6:22 AM', note: 'Flagged as critical on submission.' },
+        { s: 'active', step: 'Under Review',    time: '20 Mar, 7:00 AM', note: 'Awaiting team assignment.' },
+        { s: 'wait',  step: 'Team Dispatch',    time: 'Pending',         note: '' },
+        { s: 'wait',  step: 'Repair',           time: 'Pending',         note: '' },
+        { s: 'wait',  step: 'Water Restored',   time: 'Pending',         note: '' },
+        { s: 'wait',  step: 'Closed',           time: 'Pending',         note: '' }
+      ]
+    },
+    {
+      id: 'CT-2025-0037',
+      type: 'Garbage Overflow',
+      icon: '🗑️',
+      iconBg: 'rgba(255,122,0,.12)',
+      priority: 'high',
+      status: 'pending',
+      title: 'Overflowing Garbage — Andheri Station',
+      location: 'Platform 1 Exit, Andheri Railway Station, West',
+      ward: 'Ward 12',
+      lat: 19.1190,
+      lng: 72.8488,
+      filed: '18 Mar 2025',
+      daysOpen: 4,
+      reporter: 'Suresh Jain',
+      reporterInit: 'S',
+      assignedTo: 'Sanitation Dept.',
+      dept: 'MCGM Sanitation',
+      deptContact: '1800-222-0037',
+      progress: 25,
+      affectedRadius: '200m',
+      affectedPeople: '~12,000',
+      severity: 7,
+      desc: 'Six municipal garbage bins near Andheri station platform exit have been overflowing for 4 days, during peak commute hours. Uncollected waste is attracting pests and rodents. The smell is severe and poses a public health risk. Station footfall exceeds 80,000 passengers daily, making this an urgent sanitation concern.',
+      tags: ['Sanitation', 'Public Health', 'High Traffic'],
+      timeline: [
+        { s: 'done',  step: 'Filed & Logged',    time: '18 Mar, 3:40 PM', note: 'Logged with 3 photo attachments.' },
+        { s: 'done',  step: 'Dept. Notified',    time: '19 Mar, 9:00 AM', note: 'Sanitation dept. acknowledged.' },
+        { s: 'active', step: 'Awaiting Pickup',  time: '19 Mar, 2:00 PM', note: 'Truck dispatched, delayed.' },
+        { s: 'wait',  step: 'Area Cleaned',      time: 'Pending',         note: '' },
+        { s: 'wait',  step: 'Closed',            time: 'Pending',         note: '' }
+      ]
+    },
+    {
+      id: 'CT-2025-0035',
+      type: 'Power Outage',
+      icon: '⚡',
+      iconBg: 'rgba(255,122,0,.12)',
+      priority: 'high',
+      status: 'progress',
+      title: 'Transformer Failure — Versova Road',
+      location: 'Versova Rd, Near BEST Bus Depot, Andheri West',
+      ward: 'Ward 12',
+      lat: 19.1308,
+      lng: 72.8195,
+      filed: '17 Mar 2025',
+      daysOpen: 5,
+      reporter: 'Amit Kulkarni',
+      reporterInit: 'A',
+      assignedTo: 'BEST Electrical Dept.',
+      dept: 'BEST / AEML',
+      deptContact: '1800-222-0035',
+      progress: 55,
+      affectedRadius: '1.2km',
+      affectedPeople: '~2,600',
+      severity: 8,
+      desc: 'The 400KVA transformer serving the Versova Road residential belt has failed. Approximately 340 households and a medical clinic have been without power for 5 days. Backup generator supply has been arranged for the clinic but residents remain without electricity. Replacement transformer has been ordered but delivery is pending.',
+      tags: ['Electrical', 'Residential', 'Medical Facility Affected'],
+      timeline: [
+        { s: 'done',  step: 'Filed & Logged',     time: '17 Mar, 11:05 AM', note: 'Emergency flag raised.' },
+        { s: 'done',  step: 'BEST Alerted',        time: '17 Mar, 12:30 PM', note: 'Confirmed transformer failure.' },
+        { s: 'done',  step: 'Temp Gen Arranged',   time: '17 Mar, 4:00 PM',  note: 'Generator at medical clinic.' },
+        { s: 'active', step: 'Replacement Ordered', time: '18 Mar',           note: 'ETA: 22 Mar for transformer.' },
+        { s: 'wait',  step: 'Installation',         time: 'ETA: 22 Mar',      note: '' },
+        { s: 'wait',  step: 'Closed',               time: 'ETA: 23 Mar',      note: '' }
+      ]
+    },
+    {
+      id: 'CT-2025-0031',
+      type: 'Sewage Overflow',
+      icon: '🔩',
+      iconBg: 'rgba(245,197,24,.1)',
+      priority: 'medium',
+      status: 'pending',
+      title: 'Sewage Overflow — 4 Bungalows',
+      location: '4 Bungalows, Andheri West, Near IDBI Bank',
+      ward: 'Ward 12',
+      lat: 19.1262,
+      lng: 72.8375,
+      filed: '14 Mar 2025',
+      daysOpen: 8,
+      reporter: 'Neha Desai',
+      reporterInit: 'N',
+      assignedTo: 'Water & Drainage Dept.',
+      dept: 'MCGM Drainage',
+      deptContact: '1800-222-0031',
+      progress: 20,
+      affectedRadius: '300m',
+      affectedPeople: '~600',
+      severity: 6,
+      desc: 'A blocked sewage line at 4 Bungalows has caused overflow onto the service road. The situation worsens during peak morning hours (7–9 AM). Residents have complained of foul odour affecting two residential buildings. A desilting machine was promised 5 days ago but has not arrived.',
+      tags: ['Drainage', 'Sewage', 'Recurring Issue'],
+      timeline: [
+        { s: 'done',  step: 'Filed',          time: '14 Mar', note: '' },
+        { s: 'done',  step: 'Acknowledged',   time: '15 Mar', note: 'Dept. confirmed appointment.' },
+        { s: 'active', step: 'Desilting Pending', time: 'Delayed', note: 'Machine unavailable — rescheduled.' },
+        { s: 'wait',  step: 'Line Cleared',   time: 'Pending', note: '' },
+        { s: 'wait',  step: 'Closed',         time: 'Pending', note: '' }
+      ]
+    },
+    {
+      id: 'CT-2025-0028',
+      type: 'Street Light',
+      icon: '💡',
+      iconBg: 'rgba(245,197,24,.1)',
+      priority: 'medium',
+      status: 'progress',
+      title: '14 Street Lights Out — DN Nagar',
+      location: 'DN Nagar Metro Station Stretch, Andheri West',
+      ward: 'Ward 12',
+      lat: 19.1142,
+      lng: 72.8342,
+      filed: '11 Mar 2025',
+      daysOpen: 11,
+      reporter: 'Kavita Rao',
+      reporterInit: 'K',
+      assignedTo: 'Electrical Dept.',
+      dept: 'MCGM Electrical',
+      deptContact: '1800-222-0028',
+      progress: 70,
+      affectedRadius: '800m',
+      affectedPeople: '~3,200',
+      severity: 5,
+      desc: '14 consecutive streetlights on the 800m stretch between DN Nagar metro station and St. Blaise Church have been non-functional for 11 days. This area has reported 3 chain-snatching incidents in the last week. Residents and commuters using the metro at night are vulnerable. 8 lights have been repaired; 6 remain.',
+      tags: ['Lighting', 'Safety', 'Crime Risk'],
+      timeline: [
+        { s: 'done',  step: 'Filed',            time: '11 Mar', note: '14 lights reported.' },
+        { s: 'done',  step: 'Survey Completed', time: '12 Mar', note: 'All 14 mapped and catalogued.' },
+        { s: 'done',  step: 'Partial Repair',   time: '15 Mar', note: '8 of 14 lights restored.' },
+        { s: 'active', step: 'Remaining 6',     time: '18 Mar', note: 'Parts being sourced.' },
+        { s: 'wait',  step: 'Final Check',      time: 'ETA: 21 Mar', note: '' },
+        { s: 'wait',  step: 'Closed',           time: 'ETA: 22 Mar', note: '' }
+      ]
+    },
+    {
+      id: 'CT-2025-0029',
+      type: 'Street Light',
+      icon: '💡',
+      iconBg: 'rgba(43,127,255,.1)',
+      priority: 'low',
+      status: 'resolved',
+      title: 'Street Light Repaired — Park Street',
+      location: 'Park Street, Near Gulmohar Park, Ward 12',
+      ward: 'Ward 12',
+      lat: 19.1080,
+      lng: 72.8350,
+      filed: '28 Feb 2025',
+      daysOpen: 3,
+      reporter: 'Rahul Kumar',
+      reporterInit: 'R',
+      assignedTo: 'Electrical Dept.',
+      dept: 'MCGM Electrical',
+      deptContact: '1800-222-0029',
+      progress: 100,
+      affectedRadius: '100m',
+      affectedPeople: '~200',
+      severity: 3,
+      desc: 'Single streetlight outage on Park Street resolved within 3 days. Bulb and internal wiring replaced. Inspector confirmed functionality on 02 Mar.',
+      tags: ['Lighting', 'Resolved'],
+      timeline: [
+        { s: 'done', step: 'Filed',          time: '28 Feb', note: '' },
+        { s: 'done', step: 'Assigned',       time: '01 Mar', note: 'Electrical team dispatched.' },
+        { s: 'done', step: 'Repaired',       time: '02 Mar', note: 'Bulb + wiring replaced.' },
+        { s: 'done', step: 'Verified',       time: '02 Mar', note: 'Inspector confirmed.' },
+        { s: 'done', step: 'Closed',         time: '02 Mar', note: 'Resolved in 3 days.' }
+      ]
+    },
+    {
+      id: 'CT-2025-0021',
+      type: 'Pothole',
+      icon: '🕳️',
+      iconBg: 'rgba(43,127,255,.1)',
+      priority: 'low',
+      status: 'progress',
+      title: 'Cluster of Potholes — Gulmohar Rd',
+      location: 'Gulmohar Road, JVPD Scheme, Andheri West',
+      ward: 'Ward 12',
+      lat: 19.1052,
+      lng: 72.8275,
+      filed: '20 Feb 2025',
+      daysOpen: 18,
+      reporter: 'Suresh Jain',
+      reporterInit: 'S',
+      assignedTo: 'Roads Dept.',
+      dept: 'MCGM Roads',
+      deptContact: '1800-222-0021',
+      progress: 45,
+      affectedRadius: '400m',
+      affectedPeople: '~1,400',
+      severity: 4,
+      desc: 'Seven potholes, ranging from 30cm to 80cm in diameter, on Gulmohar Road in the JVPD Scheme area. Cold-mix patching has been applied to 3 but has failed due to traffic load. Permanent hot-mix resurfacing has been requested for the remaining 4 and the 3 failed patches.',
+      tags: ['Road', 'Potholes', 'Patching Failed'],
+      timeline: [
+        { s: 'done',  step: 'Filed',           time: '20 Feb', note: '7 potholes mapped.' },
+        { s: 'done',  step: 'Cold-Mix Applied', time: '25 Feb', note: '3 patched (temporary).' },
+        { s: 'done',  step: 'Patch Failure',    time: '05 Mar', note: '3 patches failed under load.' },
+        { s: 'active', step: 'Hot-Mix Scheduled', time: 'ETA: 22 Mar', note: 'Permanent fix planned.' },
+        { s: 'wait',  step: 'Closed',           time: 'ETA: 24 Mar', note: '' }
+      ]
+    }
+  ];
+
+  /* ══════════════════════════════════════════════════
+     MERGE: seed + citizen-filed from localStorage
+  ══════════════════════════════════════════════════ */
+
+  var COMPLAINTS = [];
+
+  function loadAllComplaints() {
+    /* Start fresh with seeds */
+    COMPLAINTS = SEED_COMPLAINTS.slice();
+
+    /* Load citizen-filed from localStorage */
+    var citizenComplaints = CivicBridge.loadComplaints();
+
+    /* Merge: citizen complaints go to the top (newest first),
+       skip any that duplicate a seed ID (shouldn't happen in practice) */
+    var seedIds = {};
+    for (var i = 0; i < SEED_COMPLAINTS.length; i++) {
+      seedIds[SEED_COMPLAINTS[i].id] = true;
+    }
+
+    var newCount = 0;
+    for (var j = 0; j < citizenComplaints.length; j++) {
+      var cc = citizenComplaints[j];
+      if (!seedIds[cc.id]) {
+        COMPLAINTS.unshift(cc);
+        newCount++;
+      }
+    }
+
+    return newCount;
+  }
+
+  /* ══════════════════════════════════════════════════
+     STATE
+  ══════════════════════════════════════════════════ */
+
+  var currentFilter = 'all';
+  var currentSearch = '';
+  var currentSort   = 'priority';
+  var openModalIdx  = -1;
+  var modalMapInst  = null;
+  var cardMaps      = {};
+
+  var PRIORITY_ORDER = { critical: 0, high: 1, medium: 2, low: 3 };
+
+  /* ══════════════════════════════════════════════════
+     HELPERS
+  ══════════════════════════════════════════════════ */
+
+  function el(id) { return document.getElementById(id); }
+
+  function priorityColor(p) {
+    var map = { critical: 'var(--red)', high: 'var(--orange)', medium: 'var(--amber)', low: 'var(--blue)' };
+    return map[p] || 'var(--blue)';
+  }
+
+  function statusLabel(s) {
+    var map = { pending: 'Pending', progress: 'In Progress', resolved: 'Resolved' };
+    return map[s] || s;
+  }
+
+  function statusClass(s) {
+    var map = { pending: 'sb-pending', progress: 'sb-progress', resolved: 'sb-resolved' };
+    return map[s] || 'sb-pending';
+  }
+
+  function priorityBadgeClass(p) {
+    var map = { critical: 'pb-crit', high: 'pb-high', medium: 'pb-med', low: 'pb-low' };
+    return map[p] || 'pb-low';
+  }
+
+  function cardClass(p) {
+    var map = { critical: 'cc crit', high: 'cc high', medium: 'cc med', low: 'cc low' };
+    return map[p] || 'cc low';
+  }
+
+  function progressColor(p) {
+    var map = { critical: 'var(--red)', high: 'var(--orange)', medium: 'var(--amber)', low: 'var(--blue)' };
+    return map[p] || 'var(--blue)';
+  }
+
+  /* ══════════════════════════════════════════════════
+     FILTER + SEARCH + SORT
+  ══════════════════════════════════════════════════ */
+
+  function getFiltered() {
+    var result = [];
+
+    for (var i = 0; i < COMPLAINTS.length; i++) {
+      var c = COMPLAINTS[i];
+
+      var passFilter = false;
+      if (currentFilter === 'all')      passFilter = true;
+      else if (currentFilter === 'pending')  passFilter = c.status === 'pending';
+      else if (currentFilter === 'progress') passFilter = c.status === 'progress';
+      else if (currentFilter === 'resolved') passFilter = c.status === 'resolved';
+      else if (currentFilter === 'citizen')  passFilter = !!c.fromCitizen;
+      else passFilter = c.priority === currentFilter;
+
+      if (!passFilter) continue;
+
+      if (currentSearch) {
+        var term = currentSearch.toLowerCase();
+        var hay  = (c.id + ' ' + c.type + ' ' + c.title + ' ' + c.location + ' ' + c.reporter).toLowerCase();
+        if (hay.indexOf(term) === -1) continue;
+      }
+
+      result.push(c);
+    }
+
+    result.sort(function(a, b) {
+      if (currentSort === 'priority') {
+        /* Citizen/new complaints always float near top within their priority level */
+        var pa = PRIORITY_ORDER[a.priority];
+        var pb = PRIORITY_ORDER[b.priority];
+        if (pa !== pb) return pa - pb;
+        /* Within same priority: newer (citizen) first */
+        if (a.fromCitizen && !b.fromCitizen) return -1;
+        if (!a.fromCitizen && b.fromCitizen) return 1;
+        return 0;
+      }
+      if (currentSort === 'days') return b.daysOpen - a.daysOpen;
+      if (currentSort === 'date') return b.id.localeCompare(a.id);
+      return 0;
+    });
+
+    return result;
+  }
+
+  /* ══════════════════════════════════════════════════
+     RENDER BANNER STATS
+  ══════════════════════════════════════════════════ */
+
+  function renderStats() {
+    var total    = COMPLAINTS.length;
+    var critical = 0, pending = 0, progress = 0, resolved = 0, citizen = 0;
+
+    for (var i = 0; i < COMPLAINTS.length; i++) {
+      var c = COMPLAINTS[i];
+      if (c.priority === 'critical') critical++;
+      if (c.status === 'pending')   pending++;
+      if (c.status === 'progress')  progress++;
+      if (c.status === 'resolved')  resolved++;
+      if (c.fromCitizen)            citizen++;
+    }
+
+    el('banner-stats').innerHTML =
+      stat(total,    'Total Issues',   'var(--text)') +
+      stat(critical, 'Critical',       'var(--red)') +
+      stat(pending,  'Pending',        'var(--amber)') +
+      stat(progress, 'In Progress',    'var(--blue)') +
+      stat(resolved, 'Resolved',       'var(--green)') +
+      (citizen > 0 ? stat(citizen, 'Citizen Filed', '#16C784') : '');
+  }
+
+  function stat(val, lbl, color) {
+    return '<div class="bstat">' +
+      '<div class="bstat-num" style="color:' + color + ';">' + val + '</div>' +
+      '<div class="bstat-lbl">' + lbl + '</div>' +
+    '</div>';
+  }
+
+  /* ══════════════════════════════════════════════════
+     RENDER CARDS
+  ══════════════════════════════════════════════════ */
+
+  function render() {
+    var filtered = getFiltered();
+    el('result-count').textContent = filtered.length;
+
+    var body = el('page-body');
+    body.innerHTML = '';
+
+    if (filtered.length === 0) {
+      body.innerHTML =
+        '<div class="empty-state">' +
+          '<span class="es-icon">🔍</span>' +
+          '<h3>No complaints match your filter</h3>' +
+          '<p style="color:var(--text-3);">Try adjusting the filter or search term.</p>' +
+        '</div>';
+      return;
+    }
+
+    var groups = { critical: [], high: [], medium: [], low: [] };
+    for (var i = 0; i < filtered.length; i++) {
+      var c = filtered[i];
+      if (groups[c.priority]) groups[c.priority].push(c);
+    }
+
+    var sections = [
+      { key: 'critical', label: 'Critical Priority',  cls: 'priority-critical' },
+      { key: 'high',     label: 'High Priority',      cls: 'priority-high'     },
+      { key: 'medium',   label: 'Medium Priority',    cls: 'priority-medium'   },
+      { key: 'low',      label: 'Low / Resolved',     cls: 'priority-low'      }
+    ];
+
+    for (var s = 0; s < sections.length; s++) {
+      var sec  = sections[s];
+      var list = groups[sec.key];
+      if (!list || list.length === 0) continue;
+
+      var secEl = document.createElement('div');
+      secEl.className = 'priority-section';
+
+      var labelEl = document.createElement('div');
+      labelEl.className = 'priority-label ' + sec.cls;
+      labelEl.innerHTML =
+        '<div class="pl-dot"></div>' +
+        '<span class="pl-text">' + sec.label + '</span>' +
+        '<span class="pl-count">' + list.length + ' complaint' + (list.length !== 1 ? 's' : '') + '</span>';
+      secEl.appendChild(labelEl);
+
+      var grid = document.createElement('div');
+      grid.className = 'cards-grid';
+
+      for (var ci = 0; ci < list.length; ci++) {
+        var card = buildCard(list[ci], ci * 0.06);
+        grid.appendChild(card);
+      }
+
+      secEl.appendChild(grid);
+      body.appendChild(secEl);
+    }
+
+    setTimeout(initCardMaps, 100);
+  }
+
+  /* ── Build one card DOM node ── */
+  function buildCard(c, delay) {
+    var div = document.createElement('div');
+    div.className = cardClass(c.priority);
+    if (c.fromCitizen) div.style.outline = '1.5px solid rgba(22,199,132,.3)';
+    div.style.animationDelay = delay + 's';
+
+    var tags = '';
+    for (var t = 0; t < c.tags.length; t++) {
+      tags += '<span class="cc-tag">' + c.tags[t] + '</span>';
+    }
+
+    var mapId = 'cmap-' + c.id.replace(/[-]/g, '');
+    var citizenBadge = c.fromCitizen ? '<span class="citizen-badge">🙋 CITIZEN</span>' : '';
+
+    div.innerHTML =
+      '<div class="cc-top">' +
+        '<div class="cc-type-icon" style="background:' + (c.iconBg || 'rgba(43,127,255,.1)') + ';">' + c.icon + '</div>' +
+        '<div class="cc-meta">' +
+          '<div class="cc-id-row">' +
+            '<span class="cc-id">' + c.id + '</span>' +
+            citizenBadge +
+            '<span class="priority-badge ' + priorityBadgeClass(c.priority) + '">' + c.priority.toUpperCase() + '</span>' +
+            '<span class="status-badge ' + statusClass(c.status) + '">' + statusLabel(c.status) + '</span>' +
+          '</div>' +
+          '<div class="cc-title">' + c.title + '</div>' +
+          '<div class="cc-location">' + c.location + '</div>' +
+        '</div>' +
+        '<div class="cc-right">' +
+          '<span class="cc-date">' + c.filed + '</span>' +
+          '<span class="cc-days">' + (c.daysOpen || 0) + 'd open</span>' +
+        '</div>' +
+      '</div>' +
+      '<div class="cc-body">' +
+        '<div>' +
+          '<div class="cc-progress">' +
+            '<div class="cp-top"><span>Resolution Progress</span><span>' + (c.progress || 10) + '%</span></div>' +
+            '<div class="cp-track"><div class="cp-fill" style="width:' + (c.progress || 10) + '%;background:' + progressColor(c.priority) + ';"></div></div>' +
+          '</div>' +
+          '<p class="cc-desc">' + (c.desc || c.description || '').substring(0, 160) + ((c.desc || c.description || '').length > 160 ? '…' : '') + '</p>' +
+          '<div class="cc-stats">' +
+            '<div class="cstat"><span class="cstat-val" style="color:' + priorityColor(c.priority) + ';">' + (c.affectedPeople || '~100') + '</span><span class="cstat-lbl">Affected</span></div>' +
+            '<div class="cstat"><span class="cstat-val" style="color:var(--text-2);">' + (c.affectedRadius || '200m') + '</span><span class="cstat-lbl">Radius</span></div>' +
+            '<div class="cstat"><span class="cstat-val" style="color:var(--text-2);">' + (c.severity || '—') + '/10</span><span class="cstat-lbl">Severity</span></div>' +
+          '</div>' +
+          '<div class="cc-tags">' + tags + '</div>' +
+        '</div>' +
+        '<div class="cc-map-wrap" id="' + mapId + '"></div>' +
+      '</div>' +
+      '<div class="cc-footer">' +
+        '<div class="cc-reporter">' +
+          '<div class="reporter-av">' + (c.reporterInit || '?') + '</div>' +
+          '<span>Filed by <strong style="color:var(--text-2);">' + c.reporter + '</strong></span>' +
+          '<span style="margin-left:8px;color:var(--text-4);">→</span>' +
+          '<span style="color:var(--text-3);">' + c.assignedTo + '</span>' +
+        '</div>' +
+        '<div class="cc-actions-row">' +
+          (c.status !== 'resolved' ? '<button class="action-btn assign" onclick="openDetail(\'' + c.id + '\')">Assign</button>' : '') +
+          (c.status === 'progress' ? '<button class="action-btn resolve" onclick="markResolved(\'' + c.id + '\')">Resolve ✓</button>' : '') +
+          (c.priority === 'critical' || c.priority === 'high' ? '<button class="action-btn escalate" onclick="escalate(\'' + c.id + '\')">Escalate ↑</button>' : '') +
+          '<button class="action-btn" onclick="openDetail(\'' + c.id + '\')">Details →</button>' +
+        '</div>' +
+      '</div>';
+
+    return div;
+  }
+
+  /* ══════════════════════════════════════════════════
+     MAP INIT — CARDS
+  ══════════════════════════════════════════════════ */
+
+  function initCardMaps() {
+    var filtered = getFiltered();
+
+    for (var i = 0; i < filtered.length; i++) {
+      var c = filtered[i];
+      var mapId = 'cmap-' + c.id.replace(/[-]/g, '');
+      var container = el(mapId);
+      if (!container) continue;
+      if (cardMaps[c.id]) { cardMaps[c.id].remove(); }
+
+      var map = L.map(mapId, {
+        center: [c.lat || 19.076, c.lng || 72.877],
+        zoom: 15,
+        zoomControl: false,
+        dragging: false,
+        scrollWheelZoom: false,
+        doubleClickZoom: false,
+        attributionControl: false
+      });
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '' }).addTo(map);
+
+      var markerColor = c.priority === 'critical' ? '#FF3B3B'
+                      : c.priority === 'high'     ? '#FF7A00'
+                      : c.priority === 'medium'   ? '#F5C518'
+                      : '#2B7FFF';
+
+      var icon = L.divIcon({
+        html: '<div style="width:14px;height:14px;border-radius:50%;background:' + markerColor + ';border:3px solid rgba(255,255,255,.7);box-shadow:0 0 10px ' + markerColor + ';"></div>',
+        className: '',
+        iconSize: [14, 14],
+        iconAnchor: [7, 7]
+      });
+
+      L.marker([c.lat || 19.076, c.lng || 72.877], { icon: icon }).addTo(map);
+      cardMaps[c.id] = map;
+    }
+  }
+
+  /* ══════════════════════════════════════════════════
+     MODAL
+  ══════════════════════════════════════════════════ */
+
+  function openDetail(id) {
+    var c = null;
+    for (var i = 0; i < COMPLAINTS.length; i++) {
+      if (COMPLAINTS[i].id === id) { c = COMPLAINTS[i]; break; }
+    }
+    if (!c) return;
+
+    openModalIdx = id;
+
+    el('m-title').textContent = c.title;
+    el('m-sub').textContent   = c.id + ' · ' + (c.ward || 'Ward 12') + ' · Filed: ' + c.filed;
+
+    var details = [
+      { l: 'Priority',    v: c.priority.toUpperCase(), color: priorityColor(c.priority) },
+      { l: 'Status',      v: statusLabel(c.status) },
+      { l: 'Assigned To', v: c.assignedTo },
+      { l: 'Department',  v: c.dept },
+      { l: 'Contact',     v: c.deptContact },
+      { l: 'Days Open',   v: (c.daysOpen || 0) + ' days' },
+      { l: 'Affected',    v: c.affectedPeople || '~100' },
+      { l: 'Severity',    v: (c.severity || '—') + ' / 10' },
+      { l: 'Reporter',    v: c.reporter },
+      { l: 'Location',    v: c.location },
+      { l: 'Source',      v: c.fromCitizen ? '🙋 Citizen Portal' : '🏛️ Admin Filed' }
+    ];
+
+    var dgHtml = '';
+    for (var d = 0; d < details.length; d++) {
+      var det = details[d];
+      dgHtml +=
+        '<div class="detail-item">' +
+          '<span class="dl">' + det.l + '</span>' +
+          '<span class="dv"' + (det.color ? ' style="color:' + det.color + ';"' : '') + '>' + det.v + '</span>' +
+        '</div>';
+    }
+
+    el('m-detail-grid').innerHTML = dgHtml;
+    el('m-desc').textContent = c.desc || c.description || '';
+
+    var tlHtml = '';
+    for (var t = 0; t < c.timeline.length; t++) {
+      var step = c.timeline[t];
+      var dotLbl = step.s === 'done' ? '✓' : step.s === 'active' ? '→' : (t + 1);
+      tlHtml +=
+        '<div class="tl-item">' +
+          '<div class="tl-dot ' + step.s + '">' + dotLbl + '</div>' +
+          '<h5>' + step.step + '</h5>' +
+          (step.note ? '<p>' + step.note + '</p>' : '') +
+          '<div class="tt">' + step.time + '</div>' +
+        '</div>';
+    }
+
+    el('m-timeline').innerHTML = tlHtml;
+
+    var acts = '<button class="ma-btn ma-primary" onclick="assignDept(\'' + c.id + '\')">Assign Department</button>';
+    if (c.status !== 'resolved') {
+      acts += '<button class="ma-btn ma-green" onclick="markResolved(\'' + c.id + '\');closeModal()">Mark Resolved</button>';
+    }
+    if (c.priority === 'critical' || c.priority === 'high') {
+      acts += '<button class="ma-btn ma-red" onclick="escalate(\'' + c.id + '\');closeModal()">Escalate</button>';
+    }
+    acts += '<button class="ma-btn ma-ghost" onclick="showToast(\'Report downloaded.\')">Export Report</button>';
+    acts += '<button class="ma-btn ma-ghost" onclick="closeModal()">Close</button>';
+
+    el('m-actions').innerHTML = acts;
+    el('modal-bg').classList.add('open');
+
+    setTimeout(function() {
+      var mapCont = el('m-map');
+      mapCont.innerHTML = '';
+      if (modalMapInst) { modalMapInst.remove(); modalMapInst = null; }
+
+      modalMapInst = L.map('m-map', {
+        center: [c.lat || 19.076, c.lng || 72.877],
+        zoom: 16,
+        attributionControl: false
+      });
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(modalMapInst);
+
+      var mColor = c.priority === 'critical' ? '#FF3B3B'
+                 : c.priority === 'high'     ? '#FF7A00'
+                 : c.priority === 'medium'   ? '#F5C518'
+                 : '#2B7FFF';
+
+      var mIcon = L.divIcon({
+        html: '<div style="width:18px;height:18px;border-radius:50%;background:' + mColor + ';border:3px solid #fff;box-shadow:0 0 16px ' + mColor + ';"></div>',
+        className: '',
+        iconSize: [18, 18],
+        iconAnchor: [9, 9]
+      });
+
+      L.marker([c.lat || 19.076, c.lng || 72.877], { icon: mIcon }).addTo(modalMapInst)
+        .bindPopup('<b>' + c.id + '</b><br>' + c.title)
+        .openPopup();
+
+      var radiusM = parseFloat(c.affectedRadius || '200') * ((c.affectedRadius || '').indexOf('km') > -1 ? 1000 : 1);
+      L.circle([c.lat || 19.076, c.lng || 72.877], {
+        radius: radiusM,
+        color: mColor,
+        fillColor: mColor,
+        fillOpacity: 0.08,
+        weight: 1.5,
+        dashArray: '6 4'
+      }).addTo(modalMapInst);
+
+    }, 150);
+  }
+
+  function closeModal() {
+    el('modal-bg').classList.remove('open');
+    if (modalMapInst) { modalMapInst.remove(); modalMapInst = null; }
+    openModalIdx = -1;
+  }
+
+  function onModalBgClick(evt) {
+    if (evt.target === el('modal-bg')) closeModal();
+  }
+
+  /* ══════════════════════════════════════════════════
+     ACTIONS
+  ══════════════════════════════════════════════════ */
+
+  function markResolved(id) {
+    for (var i = 0; i < COMPLAINTS.length; i++) {
+      if (COMPLAINTS[i].id === id) {
+        COMPLAINTS[i].status   = 'resolved';
+        COMPLAINTS[i].priority = 'low';
+        COMPLAINTS[i].progress = 100;
+        /* Persist update for citizen-filed complaints */
+        if (COMPLAINTS[i].fromCitizen) {
+          CivicBridge.updateComplaint(id, { status: 'resolved', priority: 'low', progress: 100 });
+        }
+        break;
+      }
+    }
+    render();
+    renderStats();
+    showToast('✅ Complaint ' + id + ' marked as resolved.');
+  }
+
+  function escalate(id) {
+    for (var i = 0; i < COMPLAINTS.length; i++) {
+      if (COMPLAINTS[i].id === id && COMPLAINTS[i].priority !== 'critical') {
+        var levels = ['low', 'medium', 'high', 'critical'];
+        var cur = levels.indexOf(COMPLAINTS[i].priority);
+        if (cur < 3) {
+          COMPLAINTS[i].priority = levels[cur + 1];
+          if (COMPLAINTS[i].fromCitizen) {
+            CivicBridge.updateComplaint(id, { priority: COMPLAINTS[i].priority });
+          }
+        }
+        break;
+      }
+    }
+    render();
+    renderStats();
+    showToast('⬆ Complaint ' + id + ' priority escalated.');
+  }
+
+  function assignDept(id) {
+    showToast('📋 Assignment workflow opened for ' + id);
+    /* You can extend this to open an assignment sub-form */
+  }
+
+  /* ══════════════════════════════════════════════════
+     FILTER / SEARCH / SORT
+  ══════════════════════════════════════════════════ */
+
+  function setFilter(f, btn) {
+    currentFilter = f;
+    var btns = el('filter-group').children;
+    for (var i = 0; i < btns.length; i++) btns[i].classList.remove('active');
+    btn.classList.add('active');
+    render();
+  }
+
+  function onSearch(val) { currentSearch = val.trim(); render(); }
+  function onSort(val)   { currentSort = val; render(); }
+
+  /* ══════════════════════════════════════════════════
+     TOAST
+  ══════════════════════════════════════════════════ */
+
+  var toastTimer;
+  function showToast(msg, type) {
+    var t = el('toast');
+    t.textContent = msg;
+    t.className   = 'toast show' + (type === 'err' ? ' err' : '');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function() { t.classList.remove('show'); }, 3500);
+  }
+
+  /* ══════════════════════════════════════════════════
+     BOOT
+  ══════════════════════════════════════════════════ */
+
+  var newCount = loadAllComplaints();
+  renderStats();
+  render();
+
+  /* Show notification badge if there are fresh citizen complaints */
+  if (newCount > 0) {
+    var badge = el('new-badge');
+    el('new-badge-text').textContent = newCount + ' new citizen report' + (newCount > 1 ? 's' : '') + ' received';
+    badge.style.display = 'block';
+    setTimeout(function() { badge.style.display = 'none'; }, 5000);
+  }
+
+  /* Poll for new complaints every 30 seconds (simulates real-time) */
+  setInterval(function() {
+    var prevCount = COMPLAINTS.filter(function(c) { return c.fromCitizen; }).length;
+    loadAllComplaints();
+    var newCitizenCount = COMPLAINTS.filter(function(c) { return c.fromCitizen; }).length;
+    if (newCitizenCount > prevCount) {
+      renderStats();
+      render();
+      showToast('🔔 New citizen complaint received!');
+    }
+  }, 30000);
+
+</script>
+</body>
+</html>

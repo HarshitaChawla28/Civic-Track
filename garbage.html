@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CivicTrack — Garbage Management</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<link rel="stylesheet" href="css/garbage.css">
+<script src="bridge.js"></script>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="logo">
+    <div class="logo-icon">🏙️</div>
+    <span>Civic<em>Track</em></span>
+  </div>
+  <div class="tdiv"></div>
+  <div class="tbadge"><div class="pulse"></div>Garbage Management System</div>
+  <div class="tr-right">
+    <div class="tclock" id="liveClock">--:--:--</div>
+    <div class="ticon">🔔<div class="nbadge"></div></div>
+    <div class="ticon">⚙️</div>
+    <div class="tavatar">AU</div>
+  </div>
+</header>
+
+<div class="main">
+
+  <div class="page-header fade-up">
+    <div class="ph-left">
+      <div class="sub">⚠ Live Monitoring · Ludhiana Municipal Corporation</div>
+      <h1>Garbage <span>Control</span> Centre</h1>
+      <p>Real-time overflow tracking on live map · Truck dispatch · Complaint resolution across all zones</p>
+    </div>
+    <div class="ph-actions">
+      <button class="btn btn-outline" onclick="refreshData()">↻ Refresh</button>
+      <button class="btn btn-warn" onclick="emergencyDispatch()">🚨 Emergency Dispatch</button>
+      <button class="btn btn-primary" onclick="openModal(null)">🚛 Assign Truck</button>
+    </div>
+  </div>
+
+  <div class="stats fade-up" style="animation-delay:0.05s">
+    <div class="sc c-red"><div class="sc-label">Critical Zones</div><div class="sc-val v-red" id="sCritical">—</div><div class="sc-sub"><span class="up">↑3</span> since yesterday</div></div>
+    <div class="sc c-warn"><div class="sc-label">Pending Complaints</div><div class="sc-val v-warn" id="sPending">—</div><div class="sc-sub"><span class="up">↑7</span> today</div></div>
+    <div class="sc c-blue"><div class="sc-label">Trucks Deployed</div><div class="sc-val v-blue" id="sDeployed">—</div><div class="sc-sub"><span class="dn">↑2</span> active routes</div></div>
+    <div class="sc c-blue" style="border-top-color:var(--blue)"><div class="sc-label">Resolved Today</div><div class="sc-val" style="color:var(--blue)" id="sResolved">18</div><div class="sc-sub"><span class="dn">↑5</span> vs yesterday</div></div>
+    <div class="sc c-yellow"><div class="sc-label">Overflow Areas</div><div class="sc-val v-yellow" id="sOverflow">—</div><div class="sc-sub"><span class="up">↑2</span> new reports</div></div>
+  </div>
+
+  <div class="two-col fade-up" style="animation-delay:0.1s">
+
+    <div class="map-card">
+      <div class="card-head">
+        <div class="card-head-txt">
+          <h2>🗺️ Live Garbage Zone Map — Ludhiana, Punjab</h2>
+          <p>Click any marker or zone circle to view details and dispatch trucks</p>
+        </div>
+        <div class="card-head-actions">
+          <button class="btn btn-outline" style="font-size:11px;padding:6px 11px" onclick="fitAll()">⊡ Fit All</button>
+        </div>
+      </div>
+      <div class="filter-bar">
+        <button class="chip active" onclick="filterMap(this,'all')">All Zones</button>
+        <button class="chip cr" onclick="filterMap(this,'critical')">🔴 Critical</button>
+        <button class="chip cw" onclick="filterMap(this,'high')">🟠 High Priority</button>
+        <button class="chip cy" onclick="filterMap(this,'medium')">🟡 Medium</button>
+        <button class="chip" onclick="filterMap(this,'low')">🔵 Cleared</button>
+        <button class="chip" onclick="filterMap(this,'truck')">🚛 Truck Assigned</button>
+      </div>
+      <div class="map-legend">
+        <div class="leg"><div class="leg-dot" style="background:#ef4444"></div>Critical Overflow</div>
+        <div class="leg"><div class="leg-dot" style="background:#f59e0b"></div>High Priority</div>
+        <div class="leg"><div class="leg-dot" style="background:#facc15"></div>Moderate</div>
+        <div class="leg"><div class="leg-dot" style="background:#4f9cf9"></div>Cleared / Normal</div>
+        <div class="leg"><div class="leg-dot" style="background:#93c5fd"></div>Truck Assigned</div>
+        <div class="leg">● = Overflow radius</div>
+      </div>
+      <div id="realMap"></div>
+    </div>
+
+    <div class="right-panel">
+
+      <div class="rcard">
+        <div class="rcard-head">
+          <div>
+            <h2>🆕 Incoming Complaints</h2>
+            <p>Latest unresolved reports</p>
+          </div>
+          <span class="badge-new" id="newCount" style="margin-left:auto">0 new</span>
+        </div>
+        <div id="complaintsList" style="max-height:310px;overflow-y:auto"></div>
+      </div>
+
+      <div class="rcard">
+        <div class="rcard-head">
+          <div>
+            <h2>🚛 Truck Fleet Status</h2>
+            <p>Live availability</p>
+          </div>
+        </div>
+        <div id="truckList"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="bottom-row fade-up" style="animation-delay:0.15s">
+
+    <div class="bcard">
+      <div class="bcard-head"><h2>🔥 Priority Areas</h2><p>Sorted by complaint count</p></div>
+      <div id="priorityList"></div>
+    </div>
+
+    <div class="bcard">
+      <div class="bcard-head"><h2>✅ Recently Resolved</h2><p>Cleared in last 24 hours</p></div>
+      <div id="resolvedList"></div>
+    </div>
+
+    <div class="bcard">
+      <div class="bcard-head"><h2>📊 Complaint Types</h2><p>Today's breakdown</p></div>
+      <div id="typeList" style="padding:14px 16px"></div>
+    </div>
+
+  </div>
+
+</div>
+
+<!-- MODAL -->
+<div class="modal-ov" id="assignModal">
+  <div class="modal">
+    <div class="modal-head">
+      <span style="font-size:18px">🚛</span>
+      <h3>Assign Truck to Zone</h3>
+      <div class="modal-close" onclick="closeModal()">✕</div>
+    </div>
+    <div class="modal-body">
+      <div class="modal-grid" id="modalInfo"></div>
+      <div>
+        <label class="modal-sel-label">Select Truck</label>
+        <select class="modal-select" id="truckSelect"></select>
+      </div>
+      <div>
+        <label class="modal-sel-label">Priority Override</label>
+        <select class="modal-select" id="prioritySelect">
+          <option value="critical">🔴 Critical — Immediate</option>
+          <option value="high">🟠 High — Within 2 hrs</option>
+          <option value="medium" selected>🟡 Medium — Within 6 hrs</option>
+          <option value="low">🟢 Low — Scheduled</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="confirmAssign()">✓ Confirm Dispatch</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-wrap" id="toastWrap"></div>
+
+<script>
+// ── DATA ─────────────────────────────────────────────────────
+var zones = [
+  { id:"Z1",  name:"Sector 14",        lat:30.9010, lng:75.8573, level:"critical", complaints:28, population:12400, lastCollected:"2d ago",  truckAssigned:false },
+  { id:"Z2",  name:"Rajiv Nagar",      lat:30.9120, lng:75.8650, level:"high",     complaints:19, population:9800,  lastCollected:"1d ago",  truckAssigned:true  },
+  { id:"Z3",  name:"Model Town",       lat:30.9200, lng:75.8480, level:"medium",   complaints:11, population:15600, lastCollected:"18h ago", truckAssigned:false },
+  { id:"Z4",  name:"Prem Nagar",       lat:30.9280, lng:75.8380, level:"low",      complaints:3,  population:7200,  lastCollected:"6h ago",  truckAssigned:false },
+  { id:"Z5",  name:"Civil Lines",      lat:30.9000, lng:75.8420, level:"high",     complaints:21, population:11200, lastCollected:"36h ago", truckAssigned:true  },
+  { id:"Z6",  name:"BRS Nagar",        lat:30.8950, lng:75.8320, level:"critical", complaints:31, population:18900, lastCollected:"3d ago",  truckAssigned:false },
+  { id:"Z7",  name:"Sarabha Nagar",    lat:30.8870, lng:75.8460, level:"medium",   complaints:9,  population:8400,  lastCollected:"12h ago", truckAssigned:false },
+  { id:"Z8",  name:"Dugri",            lat:30.8800, lng:75.8540, level:"low",      complaints:2,  population:6100,  lastCollected:"5h ago",  truckAssigned:false },
+  { id:"Z9",  name:"Haibowal Kalan",   lat:30.9080, lng:75.8750, level:"medium",   complaints:13, population:10300, lastCollected:"22h ago", truckAssigned:false },
+  { id:"Z10", name:"Gill Road",        lat:30.9160, lng:75.8820, level:"critical", complaints:34, population:22100, lastCollected:"4d ago",  truckAssigned:false },
+  { id:"Z11", name:"Dhandari Kalan",   lat:30.9230, lng:75.8920, level:"high",     complaints:18, population:14700, lastCollected:"28h ago", truckAssigned:true  },
+  { id:"Z12", name:"Focal Point",      lat:30.9300, lng:75.8780, level:"medium",   complaints:7,  population:9500,  lastCollected:"14h ago", truckAssigned:false },
+  { id:"Z13", name:"Vishwakarma Ngr",  lat:30.8920, lng:75.8700, level:"high",     complaints:16, population:8800,  lastCollected:"1d ago",  truckAssigned:false },
+  { id:"Z14", name:"Khanna Road",      lat:30.8840, lng:75.8820, level:"low",      complaints:4,  population:5600,  lastCollected:"8h ago",  truckAssigned:false },
+  { id:"Z15", name:"Sherpur Kalan",    lat:30.8760, lng:75.8650, level:"medium",   complaints:10, population:7900,  lastCollected:"20h ago", truckAssigned:false },
+  { id:"Z16", name:"Jamalpur",         lat:30.9350, lng:75.8580, level:"critical", complaints:26, population:17300, lastCollected:"2d ago",  truckAssigned:false }
+];
+
+var trucks = [
+  { id:"GRB-01", driver:"Suresh P.",   status:"available", location:"Depot A",       cap:80 },
+  { id:"GRB-02", driver:"Mahesh K.",   status:"deployed",  location:"Gill Road",     cap:65 },
+  { id:"GRB-03", driver:"Priya S.",    status:"deployed",  location:"BRS Nagar",     cap:72 },
+  { id:"GRB-04", driver:"Rajan T.",    status:"returning", location:"Dhandari Kalan",cap:90 },
+  { id:"GRB-05", driver:"Kavita M.",   status:"available", location:"Depot B",       cap:85 },
+  { id:"GRB-06", driver:"Vikram B.",   status:"available", location:"Depot A",       cap:78 }
+];
+
+var complaints = [
+  { id:"GC-2024-089", zone:"Gill Road",       desc:"Open garbage dump near main market, spreading to road",  priority:"critical", time:"12 min ago", type:"Overflow",      isNew:true  },
+  { id:"GC-2024-088", zone:"BRS Nagar",       desc:"3 bins overflowing near school gate, pest issue",        priority:"critical", time:"28 min ago", type:"Overflow",      isNew:true  },
+  { id:"GC-2024-087", zone:"Sector 14",       desc:"No garbage collection for 48 hours in A-block",         priority:"high",     time:"1 hr ago",   type:"Missed Pickup", isNew:true  },
+  { id:"GC-2024-086", zone:"Vishwakarma Ngr", desc:"Illegal dumping at park boundary",                      priority:"high",     time:"2 hrs ago",  type:"Illegal Dump",  isNew:false },
+  { id:"GC-2024-085", zone:"Jamalpur",        desc:"Bins missing from sector 4C for over a week",           priority:"critical", time:"3 hrs ago",  type:"Missing Bins",  isNew:false },
+  { id:"GC-2024-084", zone:"Civil Lines",     desc:"Garbage truck didn't arrive on scheduled route",        priority:"high",     time:"4 hrs ago",  type:"Missed Pickup", isNew:false },
+  { id:"GC-2024-083", zone:"Model Town",      desc:"Composting area stench complaint from residents",       priority:"medium",   time:"5 hrs ago",  type:"Stench",        isNew:false },
+  { id:"GC-2024-082", zone:"Focal Point",     desc:"Industrial waste mixed with residential garbage",       priority:"medium",   time:"6 hrs ago",  type:"Waste Mix",     isNew:false }
+];
+
+var resolvedAreas = [
+  { name:"Sarabha Nagar", time:"2h ago",  truck:"GRB-04" },
+  { name:"Dugri",         time:"4h ago",  truck:"GRB-01" },
+  { name:"Prem Nagar",    time:"6h ago",  truck:"GRB-06" },
+  { name:"Focal Point",   time:"8h ago",  truck:"GRB-03" },
+  { name:"Khanna Road",   time:"10h ago", truck:"GRB-05" }
+];
+
+var typeData = [
+  { type:"Overflow",      count:14, color:"var(--red)"   },
+  { type:"Missed Pickup", count:9,  color:"var(--warn)"  },
+  { type:"Illegal Dump",  count:6,  color:"var(--yellow)"},
+  { type:"Missing Bins",  count:5,  color:"var(--blue)"  },
+  { type:"Stench",        count:4,  color:"var(--text3)" },
+  { type:"Waste Mix",     count:3,  color:"var(--accent)"}
+];
+
+// ── MAP SETUP ────────────────────────────────────────────────
+var map = null;
+var layerGroups = [];
+var currentFilter = "all";
+var selectedZoneId = null;
+
+function getLevelColor(level) {
+  if (level === "critical") return "#ef4444";
+  if (level === "high")     return "#f59e0b";
+  if (level === "medium")   return "#facc15";
+  return "#4f9cf9";
+}
+
+function initMap() {
+  map = L.map("realMap", { zoomControl:true, scrollWheelZoom:true }).setView([30.9050, 75.8620], 13);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    attribution:"© OpenStreetMap",
+    maxZoom:19
+  }).addTo(map);
+  renderMarkers();
+}
+
+function makeMarkerIcon(zone) {
+  var color = zone.truckAssigned ? "#93c5fd" : getLevelColor(zone.level);
+  var size  = zone.level === "critical" ? 42 : zone.level === "high" ? 38 : 34;
+  var label = zone.truckAssigned ? "🚛" : (zone.level === "critical" ? "🔴" : zone.level === "high" ? "🟠" : zone.level === "medium" ? "🟡" : "🔵");
+  var anim  = zone.level === "critical" ? "animation:blink 1s infinite;" : "";
+  var html =
+    '<div style="' + anim +
+    'width:' + size + 'px;height:' + size + 'px;' +
+    'background:' + color + ';border-radius:50% 50% 50% 0;' +
+    'transform:rotate(-45deg);border:2px solid rgba(255,255,255,0.3);' +
+    'box-shadow:0 4px 12px rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center">' +
+    '<div style="transform:rotate(45deg);font-size:' + Math.round(size * 0.42) + 'px">' + label + '</div></div>';
+  return L.divIcon({ html:html, className:"", iconSize:[size,size], iconAnchor:[size/2,size], popupAnchor:[0,-size] });
+}
+
+function makePopupHtml(zone) {
+  var color = zone.truckAssigned ? "#93c5fd" : getLevelColor(zone.level);
+  return '<div class="popup-inner">' +
+    '<div class="popup-zone-name" style="color:' + color + '">' + zone.name + '</div>' +
+    '<div class="popup-row"><span>Status</span><span style="color:' + color + '">' + zone.level.toUpperCase() + '</span></div>' +
+    '<div class="popup-row"><span>Complaints</span><span>' + zone.complaints + '</span></div>' +
+    '<div class="popup-row"><span>Population</span><span>' + zone.population.toLocaleString() + '</span></div>' +
+    '<div class="popup-row"><span>Last Collected</span><span>' + zone.lastCollected + '</span></div>' +
+    '<div class="popup-row"><span>Truck Assigned</span><span>' + (zone.truckAssigned ? "Yes ✅" : "No ❌") + '</span></div>' +
+    '<button class="popup-assign-btn" onclick="openModal(\'' + zone.id + '\')">🚛 Assign Truck to This Zone</button>' +
+    '</div>';
+}
+
+function renderMarkers() {
+  // Remove old layers
+  var i = 0;
+  while (i < layerGroups.length) {
+    map.removeLayer(layerGroups[i]);
+    i++;
+  }
+  layerGroups = [];
+
+  var j = 0;
+  while (j < zones.length) {
+    var z = zones[j];
+    j++;
+
+    // Apply filter
+    if (currentFilter !== "all") {
+      if (currentFilter === "truck" && !z.truckAssigned) { continue; }
+      if (currentFilter !== "truck" && z.level !== currentFilter) { continue; }
+    }
+
+    var color  = z.truckAssigned ? "#93c5fd" : getLevelColor(z.level);
+    var radius = z.complaints * 20;
+
+    // Overflow circle
+    var circle = L.circle([z.lat, z.lng], {
+      color:color, fillColor:color,
+      fillOpacity:0.13, opacity:0.5,
+      weight:1.5, radius:radius
+    }).addTo(map);
+    circle.bindPopup(makePopupHtml(z), { maxWidth:240 });
+    layerGroups.push(circle);
+
+    // Pin marker
+    var marker = L.marker([z.lat, z.lng], { icon:makeMarkerIcon(z) }).addTo(map);
+    marker.bindPopup(makePopupHtml(z), { maxWidth:240 });
+    layerGroups.push(marker);
+
+    // Zone name label
+    var label = L.marker([z.lat, z.lng], {
+      icon: L.divIcon({
+        html:'<div style="font-family:Syne,sans-serif;font-size:9px;font-weight:700;color:#e8f0f2;background:rgba(10,14,15,0.75);padding:2px 5px;border-radius:4px;white-space:nowrap;margin-top:44px;margin-left:-30px">' + z.name + '</div>',
+        className:"", iconSize:[80,20], iconAnchor:[0,0]
+      })
+    }).addTo(map);
+    layerGroups.push(label);
+  }
+}
+
+function filterMap(btn, filter) {
+  currentFilter = filter;
+  var chips = document.querySelectorAll(".chip");
+  var k = 0;
+  while (k < chips.length) { chips[k].classList.remove("active"); k++; }
+  btn.classList.add("active");
+  renderMarkers();
+}
+
+function fitAll() {
+  map.setView([30.9050, 75.8620], 13);
+}
+
+// ── CLOCK ────────────────────────────────────────────────────
+function updateClock() {
+  var now = new Date();
+  var h = ("0" + now.getHours()).slice(-2);
+  var m = ("0" + now.getMinutes()).slice(-2);
+  var s = ("0" + now.getSeconds()).slice(-2);
+  document.getElementById("liveClock").textContent = h + ":" + m + ":" + s;
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ── STATS ────────────────────────────────────────────────────
+function loadStats() {
+  var critical = 0; var overflow = 0; var deployed = 0;
+  var i = 0;
+  while (i < zones.length) {
+    if (zones[i].level === "critical") critical++;
+    if (zones[i].level === "critical" || zones[i].level === "high") overflow++;
+    i++;
+  }
+  var j = 0;
+  while (j < trucks.length) {
+    if (trucks[j].status === "deployed") deployed++;
+    j++;
+  }
+  document.getElementById("sCritical").textContent = critical;
+  document.getElementById("sPending").textContent  = complaints.length;
+  document.getElementById("sDeployed").textContent = deployed;
+  document.getElementById("sOverflow").textContent = overflow;
+  var newC = 0; var k = 0;
+  while (k < complaints.length) { if (complaints[k].isNew) newC++; k++; }
+  document.getElementById("newCount").textContent = newC + " new";
+}
+
+// ── COMPLAINTS ───────────────────────────────────────────────
+function buildComplaints() {
+  var list = document.getElementById("complaintsList");
+  list.innerHTML = "";
+  var pc = { critical:"var(--red)", high:"var(--warn)", medium:"var(--yellow)", low:"var(--accent)" };
+  var i = 0;
+  while (i < complaints.length) {
+    var c = complaints[i]; i++;
+    var div = document.createElement("div");
+    div.className = "ci";
+    div.innerHTML =
+      '<div class="ci-bar" style="background:' + pc[c.priority] + '"></div>' +
+      '<div class="ci-top"><div class="ci-zone">' + c.zone + (c.isNew ? ' <span class="badge-new">NEW</span>' : '') + '</div><div class="ci-time">' + c.time + '</div></div>' +
+      '<div class="ci-desc">' + c.desc + '</div>' +
+      '<div class="ci-foot"><span class="tag ' + c.priority + '">' + c.priority + '</span><span class="tag blue-t">' + c.type + '</span><span class="ci-id">' + c.id + '</span></div>';
+    list.appendChild(div);
+  }
+}
+
+// ── TRUCKS ───────────────────────────────────────────────────
+function buildTrucks() {
+  var list = document.getElementById("truckList");
+  list.innerHTML = "";
+  var icons = { available:"🔵", deployed:"🟠", returning:"⚪" };
+  var i = 0;
+  while (i < trucks.length) {
+    var t = trucks[i]; i++;
+    var div = document.createElement("div");
+    div.className = "truck-row";
+    div.innerHTML =
+      '<div class="truck-icon">' + icons[t.status] + '</div>' +
+      '<div class="truck-info"><div class="truck-id">' + t.id + ' · ' + t.driver + '</div><div class="truck-loc">📍 ' + t.location + ' · ' + t.cap + '%</div></div>' +
+      '<span class="truck-status s-' + t.status + '">' + t.status + '</span>';
+    list.appendChild(div);
+  }
+}
+
+// ── PRIORITY AREAS ───────────────────────────────────────────
+function buildPriority() {
+  var sorted = zones.slice().sort(function(a, b) { return b.complaints - a.complaints; });
+  var list = document.getElementById("priorityList");
+  list.innerHTML = "";
+  var max = sorted[0].complaints;
+  var i = 0;
+  while (i < 5) {
+    var z = sorted[i]; i++;
+    var color = getLevelColor(z.level);
+    var pct = Math.round((z.complaints / max) * 100);
+    var div = document.createElement("div");
+    div.className = "area-item";
+    div.innerHTML =
+      '<div class="area-rank">#' + i + '</div>' +
+      '<div class="area-name">' + z.name + '</div>' +
+      '<div class="area-bar"><div class="area-bar-bg"><div class="area-bar-fill" style="width:' + pct + '%;background:' + color + '"></div></div></div>' +
+      '<div class="area-count">' + z.complaints + '</div>';
+    div.addEventListener("click", (function(zid){ return function(){ openModal(zid); }; })(z.id));
+    list.appendChild(div);
+  }
+}
+
+// ── RESOLVED ────────────────────────────────────────────────
+function buildResolved() {
+  var list = document.getElementById("resolvedList");
+  list.innerHTML = "";
+  var i = 0;
+  while (i < resolvedAreas.length) {
+    var r = resolvedAreas[i]; i++;
+    var div = document.createElement("div");
+    div.className = "area-item";
+    div.innerHTML =
+      '<div class="area-rank" style="color:var(--accent)">✓</div>' +
+      '<div class="area-name">' + r.name + '</div>' +
+      '<div style="font-size:10px;color:var(--text3);font-family:\'Space Mono\',monospace;margin-left:auto">' + r.time + '</div>';
+    list.appendChild(div);
+  }
+}
+
+// ── TYPES ────────────────────────────────────────────────────
+function buildTypes() {
+  var total = 0; var i = 0;
+  while (i < typeData.length) { total += typeData[i].count; i++; }
+  var container = document.getElementById("typeList");
+  container.innerHTML = "";
+  var j = 0;
+  while (j < typeData.length) {
+    var t = typeData[j]; j++;
+    var pct = Math.round((t.count / total) * 100);
+    var div = document.createElement("div");
+    div.style.marginBottom = "10px";
+    div.innerHTML =
+      '<div style="display:flex;justify-content:space-between;margin-bottom:3px;font-size:11px;font-weight:600"><span style="color:var(--text)">' + t.type + '</span><span style="font-family:\'Space Mono\',monospace;color:' + t.color + '">' + t.count + '</span></div>' +
+      '<div style="height:4px;border-radius:3px;background:var(--bg3);overflow:hidden"><div style="width:' + pct + '%;height:100%;background:' + t.color + ';border-radius:3px"></div></div>';
+    container.appendChild(div);
+  }
+}
+
+// ── MODAL ────────────────────────────────────────────────────
+function openModal(zoneId) {
+  selectedZoneId = zoneId;
+  var zone = null;
+  var i = 0;
+  while (i < zones.length) { if (zones[i].id === zoneId) { zone = zones[i]; break; } i++; }
+  var info = document.getElementById("modalInfo");
+  if (zone) {
+    var color = getLevelColor(zone.level);
+    info.innerHTML =
+      '<div class="modal-field"><label>Zone</label><span>' + zone.name + '</span></div>' +
+      '<div class="modal-field"><label>Priority</label><span style="color:' + color + '">' + zone.level.toUpperCase() + '</span></div>' +
+      '<div class="modal-field"><label>Complaints</label><span>' + zone.complaints + '</span></div>' +
+      '<div class="modal-field"><label>Last Collected</label><span>' + zone.lastCollected + '</span></div>';
+    var ps = document.getElementById("prioritySelect");
+    if (zone.level === "critical") { ps.value = "critical"; }
+    else if (zone.level === "high") { ps.value = "high"; }
+    else { ps.value = "medium"; }
+  } else {
+    info.innerHTML = '<div class="modal-field"><label>Mode</label><span>Manual</span></div><div class="modal-field"><label>Zone</label><span>Select below</span></div>';
+  }
+  var sel = document.getElementById("truckSelect");
+  sel.innerHTML = "";
+  var j = 0;
+  while (j < trucks.length) {
+    if (trucks[j].status === "available") {
+      var opt = document.createElement("option");
+      opt.value = trucks[j].id;
+      opt.textContent = trucks[j].id + " — " + trucks[j].driver + " (" + trucks[j].cap + "%)";
+      sel.appendChild(opt);
+    }
+    j++;
+  }
+  if (!sel.options.length) {
+    var no = document.createElement("option");
+    no.textContent = "No trucks available";
+    sel.appendChild(no);
+  }
+  document.getElementById("assignModal").classList.add("open");
+}
+
+function closeModal() {
+  document.getElementById("assignModal").classList.remove("open");
+  selectedZoneId = null;
+}
+
+function confirmAssign() {
+  var truckId = document.getElementById("truckSelect").value;
+  if (!truckId) { showToast("No truck selected", "error"); return; }
+  var zoneName = "Zone"; var i = 0;
+  while (i < trucks.length) {
+    if (trucks[i].id === truckId) {
+      trucks[i].status = "deployed";
+      if (selectedZoneId) {
+        var j = 0;
+        while (j < zones.length) {
+          if (zones[j].id === selectedZoneId) {
+            trucks[i].location = zones[j].name;
+            zones[j].truckAssigned = true;
+            zoneName = zones[j].name;
+            break;
+          }
+          j++;
+        }
+      }
+      break;
+    }
+    i++;
+  }
+  closeModal();
+  renderMarkers();
+  buildTrucks();
+  loadStats();
+  showToast("🚛 " + truckId + " dispatched to " + zoneName, "success");
+}
+
+// ── EMERGENCY DISPATCH ───────────────────────────────────────
+function emergencyDispatch() {
+  var target = null; var maxC = -1; var i = 0;
+  while (i < zones.length) {
+    if (!zones[i].truckAssigned && zones[i].level === "critical" && zones[i].complaints > maxC) {
+      maxC = zones[i].complaints; target = zones[i];
+    }
+    i++;
+  }
+  if (!target) { showToast("All critical zones have trucks", "error"); return; }
+  var truck = null; var j = 0;
+  while (j < trucks.length) {
+    if (trucks[j].status === "available") { truck = trucks[j]; break; }
+    j++;
+  }
+  if (!truck) { showToast("No available trucks", "error"); return; }
+  truck.status = "deployed";
+  truck.location = target.name;
+  target.truckAssigned = true;
+  renderMarkers(); buildTrucks(); loadStats();
+  showToast("🚨 EMERGENCY: " + truck.id + " → " + target.name, "success");
+}
+
+// ── REFRESH ──────────────────────────────────────────────────
+function refreshData() {
+  var i = 0;
+  while (i < zones.length) {
+    var d = Math.floor(Math.random() * 3) - 1;
+    zones[i].complaints = Math.max(0, zones[i].complaints + d);
+    i++;
+  }
+  renderMarkers(); loadStats(); buildPriority();
+  showToast("✓ Data refreshed", "success");
+}
+
+// ── TOAST ────────────────────────────────────────────────────
+function showToast(msg, type) {
+  var wrap = document.getElementById("toastWrap");
+  var t = document.createElement("div");
+  t.className = "toast " + (type || "");
+  t.innerHTML = (type === "success" ? "✅ " : type === "error" ? "❌ " : "📥 ") + msg;
+  wrap.appendChild(t);
+  setTimeout(function() {
+    t.style.transition = "all 0.3s ease";
+    t.style.opacity = "0";
+    t.style.transform = "translateX(16px)";
+    setTimeout(function() { t.remove(); }, 300);
+  }, 3000);
+}
+
+// ── INIT ─────────────────────────────────────────────────────
+
+// ── LOAD CITIZEN GARBAGE COMPLAINTS FROM LOCALSTORAGE ────────
+(function() {
+  try {
+    var citizenComplaints = CivicBridge.loadComplaints();
+    citizenComplaints.forEach(function(c) {
+      var t = (c.type || '').toLowerCase();
+      if (t.includes('garbage') || t.includes('waste') || t.includes('sanitation')) {
+        complaints.unshift({
+          id:       c.id,
+          zone:     c.location ? c.location.split(',')[0] : 'Unknown Area',
+          desc:     c.desc || c.description || '',
+          priority: c.priority || 'medium',
+          time:     c.filed || 'just now',
+          type:     c.type,
+          isNew:    true
+        });
+      }
+    });
+  } catch(e) {
+    console.warn('GarbagePage: Could not load citizen complaints', e);
+  }
+})();
+
+initMap();
+loadStats();
+buildComplaints();
+buildTrucks();
+buildPriority();
+buildResolved();
+buildTypes();
+
+setInterval(function() {
+  if (Math.random() > 0.65) {
+    var fz = ["Gill Road","BRS Nagar","Sector 14","Jamalpur","Civil Lines"];
+    var fd = ["Bin overflow near market","Garbage truck missed route","Illegal dumping spotted","Bins overflowing near school"];
+    var fp = ["critical","high","medium"];
+    var ft = ["Overflow","Missed Pickup","Illegal Dump"];
+    var r1 = Math.floor(Math.random() * fz.length);
+    var r2 = Math.floor(Math.random() * fd.length);
+    var r3 = Math.floor(Math.random() * fp.length);
+    complaints.unshift({ id:"GC-2024-0"+(90+complaints.length), zone:fz[r1], desc:fd[r2], priority:fp[r3], time:"just now", type:ft[r3], isNew:true });
+    if (complaints.length > 10) complaints.pop();
+    buildComplaints(); loadStats();
+    showToast("New complaint: " + fz[r1], "");
+  }
+}, 30000);
+</script>
+</body>
+</html>

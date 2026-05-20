@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Signup</title>
+    <link rel="stylesheet" href="css/signup.css">
+</head>
+<body>
+    <a class="btn-back" href="getstarted.html">← Back</a>
+    <div class="signup-container">
+  <div class="icon">📋</div>
+  <h2>Create Your Account</h2>
+  <p class="subtitle">Join CivicTrack to get started</p>
+
+  <form onsubmit="goToDashboard(); return false;">
+    <div class="section-title">Personal Information</div>
+
+    <div class="name-row">
+      <div class="field">
+        <label>First Name</label>
+        <input type="text" id="first-name" placeholder="First name" required>
+      </div>
+      <div class="field">
+        <label>Last Name</label>
+        <input type="text" id="last-name" placeholder="Last name" required>
+      </div>
+    </div>
+
+    <label>Mobile Number</label>
+    <input type="tel" id="mobile" placeholder="Enter mobile number" required>
+
+    <div class="section-title">Address</div>
+
+    <label>Street Address</label>
+    <input type="text" id="street" placeholder="Enter your address">
+
+    <div class="address-grid">
+      <div class="field-small"><label>City</label><input type="text" id="city" placeholder="City"></div>
+      <div class="field-small"><label>State</label><input type="text" id="state" placeholder="State"></div>
+    </div>
+
+    <div class="address-grid">
+      <div class="field-small"><label>Pincode</label><input type="number" id="pincode" placeholder="Enter pincode"></div>
+      <div class="field-small"><label>Country</label><input type="text" id="country" placeholder="Enter country"></div>
+    </div>
+
+    <div class="section-title">Account Details</div>
+
+    <label>Email</label>
+    <input type="email" id="signup-email" placeholder="Enter email" required>
+
+    <label>Password</label>
+    <input type="password" id="signup-password" placeholder="Create password" required>
+
+    <div class="terms-row">
+      <input type="checkbox" id="terms" required>
+      <label for="terms" class="terms-label">I agree to the <a href="#">Terms and Conditions</a> and <a href="#">Privacy Policy</a></label>
+    </div>
+
+    <button type="submit">Sign Up</button>
+  </form>
+
+  <!-- Demo hint box with autofill button — same style as login page -->
+  <div class="demo-hint">
+    <!-- Header row: label on left, autofill button on right -->
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
+      <!-- Small pill button — onclick fills all fields with sample data -->
+      <button
+        type="button"
+        id="autofillBtn"
+        onclick="fillDemoDetails()"
+        style="font-size:11px; padding:2px 9px; border-radius:20px; border:1.5px solid #5a6acf; color:#5a6acf; background:transparent; cursor:pointer; font-weight:500;"
+        onmouseover="this.style.background='#5a6acf'; this.style.color='#fff';"
+        onmouseout="this.style.background='transparent'; this.style.color='#5a6acf';"
+      >⚡ Autofill</button>
+    </div>
+    Name: &nbsp;&nbsp;&nbsp;Demo User<br>
+    Email: &nbsp;&nbsp;&nbsp;demo@example.com<br>
+    Password: demo1234
+  </div>
+
+  <p class="login-link">Already have an account? <a href="login.html">Login</a></p>
+</div>
+
+<script>
+  // fillDemoDetails() runs when the Autofill button is clicked.
+  // It fills every field in the signup form with sample demo data
+  // so the user can quickly test the signup flow without typing anything.
+  function fillDemoDetails() {
+    document.getElementById('first-name').value      = 'Demo';
+    document.getElementById('last-name').value       = 'User';
+    document.getElementById('mobile').value          = '9876543210';
+    document.getElementById('street').value          = '42 MG Road';
+    document.getElementById('city').value            = 'Ludhiana';
+    document.getElementById('state').value           = 'Punjab';
+    document.getElementById('pincode').value         = '141001';
+    document.getElementById('country').value         = 'India';
+    document.getElementById('signup-email').value    = 'demo@example.com';
+    document.getElementById('signup-password').value = 'demo1234';
+
+    // Also check the terms checkbox so the form is ready to submit
+    document.getElementById('terms').checked = true;
+
+    // Brief visual feedback: button turns green for 1.5s then reverts
+    const btn = document.getElementById('autofillBtn');
+    btn.textContent       = '✓ Filled!';
+    btn.style.background  = '#22c55e';
+    btn.style.borderColor = '#22c55e';
+    btn.style.color       = '#fff';
+    setTimeout(() => {
+      btn.textContent       = '⚡ Autofill';
+      btn.style.background  = 'transparent';
+      btn.style.borderColor = '#5a6acf';
+      btn.style.color       = '#5a6acf';
+    }, 1500);
+  }
+
+  function goToDashboard() {
+    //  Read the name and email the user just typed
+    // Reads the first name, last name, and email that the user typed into the signup form.
+    // .trim() removes extra spaces before and after the text.
+    var firstName = document.getElementById('first-name').value.trim();
+    var lastName  = document.getElementById('last-name').value.trim();
+    var email     = document.getElementById('signup-email').value.trim();
+
+    var fullName  = (firstName + ' ' + lastName).trim() || 'User';
+    // Joins first and last name into a single string. If both are empty, it defaults to 'User'.
+
+    // Save to sessionStorage so userprofile can read it
+    sessionStorage.setItem('loggedIn',  'true');
+    sessionStorage.setItem('userName',  fullName);
+    sessionStorage.setItem('userEmail', email);
+
+    //  Go to newuser.html after signup
+    sessionStorage.removeItem('redirectAfterLogin');
+    window.location.href = 'newuser.html';
+  }
+</script>
+
+</body>
+</html>

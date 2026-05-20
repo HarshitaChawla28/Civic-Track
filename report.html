@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Report Issue - CivicTrack</title>
+  <link rel="stylesheet" href="css/report.css"/>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header>
+    <nav>
+      <div style="display:flex;align-items:center;gap:16px;">
+        <a href="newuser.html" class="back-btn-nav">← Back</a>
+        <a href="#" class="logo"><span class="logo-dot"></span>CivicTrack</a>
+      </div>
+      <span class="header-tag">● Issue Reporting Portal</span>
+    </nav>
+  </header>
+
+  <!-- MAIN -->
+  <section class="report-section">
+
+    <!-- Left Info Panel -->
+    <div class="info-panel">
+      <span class="section-tag">Civic Reporting</span>
+      <h2>Report a problem.<br>Make a difference.</h2>
+      <p>Every report helps municipal authorities take faster action. Your complaint is tracked in real time until resolved.</p>
+
+      <ul class="info-list">
+        <li><span class="info-icon">🔒</span><div><strong>Secure Submission</strong><span>Your data is encrypted and protected</span></div></li>
+        <li><span class="info-icon">📋</span><div><strong>Unique Tracking ID</strong><span>Track your complaint anytime</span></div></li>
+        <li><span class="info-icon">⚡</span><div><strong>Fast Response</strong><span>Authorities notified within minutes</span></div></li>
+        <li><span class="info-icon">🔔</span><div><strong>Live Updates</strong><span>Get notified when issue is resolved</span></div></li>
+      </ul>
+
+      <div class="mini-stats">
+        <div class="mini-stat"><span class="mini-num" id="ms-1">0</span><span class="mini-label">Issues Resolved</span></div>
+        <div class="mini-stat"><span class="mini-num">98%</span><span class="mini-label">Resolution Rate</span></div>
+        <div class="mini-stat"><span class="mini-num">&lt;48h</span><span class="mini-label">Avg. Response</span></div>
+      </div>
+
+      <div class="recent-feed">
+        <div class="feed-title">🔴 Live Reports</div>
+        <div id="live-feed"></div>
+      </div>
+    </div>
+
+    <!-- Right Form Panel -->
+    <div class="report-container">
+
+      <div class="steps-bar">
+        <div class="step-dot active" id="dot-1">1</div>
+        <div class="step-line" id="line-1"></div>
+        <div class="step-dot" id="dot-2">2</div>
+        <div class="step-line" id="line-2"></div>
+        <div class="step-dot" id="dot-3">3</div>
+      </div>
+      <div class="steps-labels">
+        <span>Issue Details</span><span>Location</span><span>Submit</span>
+      </div>
+
+      <h1>📍 Report a Civic Issue</h1>
+      <p class="form-subtitle">Fill in the details below. All fields marked * are required.</p>
+
+      <form id="report-form" onsubmit="submitForm(event)" novalidate>
+
+        <div class="form-group">
+          <label>Issue Type <span class="req">*</span></label>
+          <select id="issue-type" onchange="updateStepBar(1); updateIssueHint()">
+            <option value="">— Select Issue Type —</option>
+            <option value="road">🛣️ Road &amp; Street Damage</option>
+            <option value="light">💡 Street Lighting</option>
+            <option value="garbage">🗑️ Garbage / Waste</option>
+            <option value="water">💧 Water Leakage</option>
+            <option value="penalty">⚠️ Water Wastage</option>
+            <option value="other">📌 Other</option>
+          </select>
+          <div class="issue-hint" id="issue-hint"></div>
+          <span class="field-error" id="err-type"></span>
+        </div>
+
+        <div class="form-group">
+          <label>Severity Level <span class="req">*</span></label>
+          <div class="severity-btns">
+            <button type="button" class="sev-btn" onclick="setSeverity('low', this)">🟢 Low</button>
+            <button type="button" class="sev-btn" onclick="setSeverity('medium', this)">🟡 Medium</button>
+            <button type="button" class="sev-btn" onclick="setSeverity('high', this)">🔴 High</button>
+          </div>
+          <input type="hidden" id="severity-val"/>
+          <span class="field-error" id="err-severity"></span>
+        </div>
+
+        <div class="form-group">
+          <label>Location / Address <span class="req">*</span></label>
+          <div class="location-row">
+            <input type="text" id="location" placeholder="Type address or click map below" oninput="debounceSearch()" onchange="updateStepBar(2)"/>
+            <button type="button" class="gps-btn" onclick="getMyLocation()" title="Use my location">📍</button>
+          </div>
+          <div class="location-suggestions" id="location-suggestions"></div>
+          <span class="field-error" id="err-location"></span>
+          <div class="map-container">
+            <div id="pick-map"></div>
+            <div class="map-hint">📌 Click anywhere on the map to set exact location</div>
+          </div>
+          <div class="coords-display" id="coords-display" style="display:none;">
+            <span>📍</span><span id="coords-text">—</span>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Your Name <span class="req">*</span></label>
+          <input type="text" id="reporter-name" placeholder="Full name"/>
+          <span class="field-error" id="err-name"></span>
+        </div>
+
+        <div class="form-group">
+          <label>Phone Number <span class="optional">(optional)</span></label>
+          <input type="tel" id="phone" placeholder="e.g. 98765-43210"/>
+        </div>
+
+        <div class="form-group">
+          <label>Upload Photos <span class="optional">(optional but speeds up resolution)</span></label>
+          <div class="file-drop" id="file-drop" onclick="document.getElementById('file-input').click()">
+            <span id="file-label">📷 Click to upload or drag &amp; drop · Max 3 photos</span>
+            <input type="file" id="file-input" accept="image/*" multiple style="display:none" onchange="handleFile(this)"/>
+          </div>
+          <div class="img-previews" id="img-previews"></div>
+        </div>
+
+        <div class="form-group">
+          <label>Description <span class="req">*</span></label>
+          <textarea id="description" rows="4" placeholder="Describe the issue — what you saw, since when, any safety risk..." oninput="countChars(this)"></textarea>
+          <div class="char-count"><span id="char-num">0</span> / 300 characters</div>
+          <span class="field-error" id="err-desc"></span>
+        </div>
+
+        <div class="form-group declaration">
+          <label class="checkbox-label">
+            <input type="checkbox" id="declare"/>
+            <span>I confirm this report is accurate and submitted in good faith.</span>
+          </label>
+          <span class="field-error" id="err-declare"></span>
+        </div>
+
+        <div class="json-preview-wrap">
+          <button type="button" class="json-toggle" onclick="toggleJSON()">
+            <span>{ }</span> Preview Report Data <span id="json-arrow">▼</span>
+          </button>
+          <div class="json-box" id="json-box" style="display:none;">
+            <pre id="json-content">Fill in the form to see the data...</pre>
+          </div>
+        </div>
+
+        <button type="submit" class="submit-btn" id="submit-btn">
+          <span id="btn-text">Submit Report →</span>
+        </button>
+
+      </form>
+
+      <!-- Success card -->
+      <div class="success-card" id="success-card">
+        <div class="success-icon">✅</div>
+        <h3>Report Submitted!</h3>
+        <p>Your complaint has been registered successfully.</p>
+        <div class="tracking-box">
+          <span class="tracking-label">Your Tracking ID</span>
+          <span class="tracking-id" id="tracking-id">CT-0000</span>
+          <button class="copy-id-btn" id="copy-id-btn" onclick="copyTrackingId()">📋 Copy ID</button>
+        </div>
+        <div class="success-details" id="success-details"></div>
+        <p class="success-note">Save this ID to track your complaint status. Authorities have been notified.</p>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;">
+          <a href="track1.html" class="back-btn" style="background:#2B7FFF;color:#fff;border-color:#2B7FFF;">🔍 Track This Complaint</a>
+          <a href="userprofile.html" class="back-btn">← Dashboard</a>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <!-- ✅ CIVIC BRIDGE — must load before main script -->
+  <script src="bridge.js"></script>
+
+  <script>
+
+    /* ── State ── */
+    var selectedSeverity = '';
+    var pickedLat = null, pickedLng = null;
+    var marker = null, map = null;
+    var searchTimer = null;
+    var uploadedFiles = [];
+
+    var issueHints = {
+      road:    "Common: potholes, broken footpaths, damaged dividers, missing manholes.",
+      light:   "Common: non-functional bulb, broken pole, flickering light, new light needed.",
+      garbage: "Common: overflowing bin, missed pickup, illegal dumping, dead animal.",
+      water:   "Common: burst pipe, leaking joint, low pressure, supply disruption.",
+      penalty: "Common: pipe left running, commercial wastage, unauthorized connection.",
+      other:   "Describe the issue clearly so the right department can be notified."
+    };
+
+    var issueMeta = {
+      road:    { label: "Broken Road",      icon: "🛣️", dept: "Roads & Infrastructure Dept.", deptIcon: "🛣️", deptPhone: "1800-222-3001", deptEmail: "roads@mcgm.gov.in",    ward: "Ward 12", city: "Mumbai", eta: "3–5 days",  progress: 10, iconBg: "rgba(255,59,59,.12)",   priority: "high"   },
+      light:   { label: "Street Light Out", icon: "💡", dept: "Electrical Dept.",              deptIcon: "💡", deptPhone: "1800-222-3002", deptEmail: "electrical@mcgm.gov.in",ward: "Ward 12", city: "Mumbai", eta: "1–2 days",  progress: 10, iconBg: "rgba(245,197,24,.1)",   priority: "medium" },
+      garbage: { label: "Garbage Overflow", icon: "🗑️", dept: "Sanitation Dept.",             deptIcon: "🗑️", deptPhone: "1800-222-3003", deptEmail: "sanitation@mcgm.gov.in",ward: "Ward 12", city: "Mumbai", eta: "24–48 hrs", progress: 10, iconBg: "rgba(255,122,0,.12)",   priority: "high"   },
+      water:   { label: "Water Leakage",    icon: "💧", dept: "Water Supply Dept.",            deptIcon: "💧", deptPhone: "1800-222-3004", deptEmail: "water@mcgm.gov.in",     ward: "Ward 12", city: "Mumbai", eta: "5–7 days",  progress: 10, iconBg: "rgba(255,59,59,.12)",   priority: "high"   },
+      penalty: { label: "Water Wastage",    icon: "⚠️", dept: "Water Supply Dept.",            deptIcon: "💧", deptPhone: "1800-222-3004", deptEmail: "water@mcgm.gov.in",     ward: "Ward 12", city: "Mumbai", eta: "3–5 days",  progress: 10, iconBg: "rgba(245,197,24,.1)",   priority: "medium" },
+      other:   { label: "General Issue",    icon: "📌", dept: "Municipal Control Room",        deptIcon: "🏛️", deptPhone: "1800-222-3000", deptEmail: "mcr@mcgm.gov.in",       ward: "Ward 12", city: "Mumbai", eta: "5–7 days",  progress: 10, iconBg: "rgba(43,127,255,.1)",   priority: "low"    }
+    };
+
+    /* Severity → priority escalation */
+    var severityToPriority = { low: 'low', medium: 'medium', high: 'high' };
+
+    var liveFeedData = [
+      { type: "💧", text: "Water leakage reported", location: "S.V. Road, Ward 12", time: "2 min ago" },
+      { type: "🛣️", text: "Pothole reported",        location: "Andheri West",       time: "8 min ago" },
+      { type: "✅", text: "Street light fixed",       location: "Park St, Ward 12",   time: "15 min ago" },
+      { type: "🗑️", text: "Bin overflow reported",   location: "Station Road",        time: "22 min ago" },
+      { type: "🔧", text: "Road repair started",      location: "Link Road",           time: "1h ago" }
+    ];
+
+    /* ── 1. Live Feed ── */
+    function renderLiveFeed() {
+      var container = document.getElementById('live-feed');
+      var html = '';
+      for (var i = 0; i < liveFeedData.length; i++) {
+        var item = liveFeedData[i];
+        html += '<div class="feed-item">' +
+          '<span class="feed-icon">' + item.type + '</span>' +
+          '<div class="feed-body"><span class="feed-text">' + item.text + '</span><span class="feed-loc">' + item.location + '</span></div>' +
+          '<span class="feed-time">' + item.time + '</span>' +
+          '</div>';
+      }
+      container.innerHTML = html;
+    }
+
+    /* ── 2. Counter ── */
+    function animateCount(id, target, suffix) {
+      var el = document.getElementById(id), n = 0;
+      var step = Math.ceil(target / 50);
+      var t = setInterval(function() {
+        n += step; if (n >= target) { n = target; clearInterval(t); }
+        el.innerHTML = n + (suffix || '');
+      }, 25);
+    }
+
+    /* ── 3. Map ── */
+    function initMap() {
+      map = L.map('pick-map').setView([19.076, 72.877], 12);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(map);
+      map.on('click', function(e) {
+        pickedLat = e.latlng.lat.toFixed(6);
+        pickedLng = e.latlng.lng.toFixed(6);
+        if (marker) map.removeLayer(marker);
+        marker = L.marker([pickedLat, pickedLng]).addTo(map);
+        reverseGeocode(pickedLat, pickedLng);
+        updateStepBar(2);
+        updateJSON();
+      });
+    }
+
+    /* ── 4. GPS ── */
+    function getMyLocation() {
+      var btn = document.querySelector('.gps-btn');
+      btn.textContent = '⏳';
+      if (!navigator.geolocation) { alert('Geolocation not supported.'); btn.textContent = '📍'; return; }
+      navigator.geolocation.getCurrentPosition(
+        function(pos) {
+          pickedLat = pos.coords.latitude.toFixed(6);
+          pickedLng = pos.coords.longitude.toFixed(6);
+          map.setView([pickedLat, pickedLng], 16);
+          if (marker) map.removeLayer(marker);
+          marker = L.marker([pickedLat, pickedLng]).addTo(map);
+          reverseGeocode(pickedLat, pickedLng);
+          updateStepBar(2);
+          btn.textContent = '✅';
+          setTimeout(function() { btn.textContent = '📍'; }, 2000);
+          updateJSON();
+        },
+        function() { alert('Could not get your location.'); btn.textContent = '📍'; }
+      );
+    }
+
+    /* ── 5. Reverse Geocode ── */
+    function reverseGeocode(lat, lng) {
+      var url = 'https://nominatim.openstreetmap.org/reverse?format=json&lat=' + lat + '&lon=' + lng;
+      fetch(url, { headers: { 'Accept-Language': 'en' } })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (data && data.display_name) {
+            document.getElementById('location').value = data.display_name;
+            document.getElementById('err-location').textContent = '';
+            showCoords(lat, lng, data.display_name);
+          }
+        })
+        .catch(function() { showCoords(lat, lng, 'Location selected from map'); });
+    }
+
+    function showCoords(lat, lng, address) {
+      document.getElementById('coords-display').style.display = 'flex';
+      document.getElementById('coords-text').textContent = lat + ', ' + lng + ' — ' + address.split(',')[0];
+      updateJSON();
+    }
+
+    /* ── 6. Address Search ── */
+    function debounceSearch() { clearTimeout(searchTimer); searchTimer = setTimeout(searchAddress, 600); updateJSON(); }
+    function searchAddress() {
+      var query = document.getElementById('location').value.trim();
+      if (query.length < 4) { document.getElementById('location-suggestions').innerHTML = ''; return; }
+      var url = 'https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(query) + '&limit=4&countrycodes=in';
+      fetch(url, { headers: { 'Accept-Language': 'en' } })
+        .then(function(r) { return r.json(); })
+        .then(function(results) {
+          if (!results || !results.length) { document.getElementById('location-suggestions').innerHTML = ''; return; }
+          var html = '';
+          for (var i = 0; i < results.length; i++) {
+            var r = results[i];
+            html += '<div class="suggestion-item" onclick="selectSuggestion(\'' + r.display_name.replace(/'/g,"\\'") + '\',' + r.lat + ',' + r.lon + ')">📍 ' + r.display_name + '</div>';
+          }
+          document.getElementById('location-suggestions').innerHTML = html;
+        });
+    }
+
+    function selectSuggestion(name, lat, lng) {
+      document.getElementById('location').value = name;
+      document.getElementById('location-suggestions').innerHTML = '';
+      pickedLat = parseFloat(lat).toFixed(6);
+      pickedLng = parseFloat(lng).toFixed(6);
+      map.setView([pickedLat, pickedLng], 15);
+      if (marker) map.removeLayer(marker);
+      marker = L.marker([pickedLat, pickedLng]).addTo(map);
+      showCoords(pickedLat, pickedLng, name);
+      updateStepBar(2);
+      updateJSON();
+    }
+
+    /* ── 7. Issue Hint ── */
+    function updateIssueHint() {
+      var type = document.getElementById('issue-type').value;
+      var hintEl = document.getElementById('issue-hint');
+      if (issueHints[type]) { hintEl.textContent = issueHints[type]; hintEl.style.display = 'block'; }
+      else { hintEl.style.display = 'none'; }
+      updateJSON();
+    }
+
+    /* ── 8. Severity ── */
+    function setSeverity(level, btn) {
+      selectedSeverity = level;
+      document.getElementById('severity-val').value = level;
+      var btns = document.querySelectorAll('.sev-btn');
+      for (var i = 0; i < btns.length; i++) { btns[i].classList.remove('active'); btns[i].style.borderColor = ''; btns[i].style.color = ''; }
+      btn.classList.add('active');
+      if (level === 'low') { btn.style.borderColor = '#16C784'; btn.style.color = '#16C784'; }
+      else if (level === 'medium') { btn.style.borderColor = '#F59E0B'; btn.style.color = '#F59E0B'; }
+      else { btn.style.borderColor = '#EF4444'; btn.style.color = '#EF4444'; }
+      document.getElementById('err-severity').textContent = '';
+      updateJSON();
+    }
+
+    /* ── 9. File Upload ── */
+    function handleFile(input) {
+      var files = input.files;
+      if (!files || !files.length) return;
+      uploadedFiles = [];
+      var previewEl = document.getElementById('img-previews');
+      previewEl.innerHTML = '';
+      var max = Math.min(files.length, 3);
+      for (var i = 0; i < max; i++) {
+        var file = files[i];
+        uploadedFiles.push(file.name);
+        var objectURL = URL.createObjectURL(file);
+        var wrap = document.createElement('div'); wrap.className = 'img-preview-wrap';
+        var img = document.createElement('img'); img.src = objectURL; img.className = 'img-preview'; img.alt = file.name;
+        var label = document.createElement('span'); label.className = 'img-preview-name'; label.textContent = file.name;
+        var removeBtn = document.createElement('span'); removeBtn.className = 'img-remove'; removeBtn.textContent = '✕';
+        removeBtn.onclick = (function(w, url) { return function() { URL.revokeObjectURL(url); w.remove(); }; })(wrap, objectURL);
+        wrap.appendChild(img); wrap.appendChild(label); wrap.appendChild(removeBtn);
+        previewEl.appendChild(wrap);
+      }
+      document.getElementById('file-label').textContent = '✅ ' + max + ' photo(s) selected';
+      document.getElementById('file-drop').style.borderColor = '#16C784';
+    }
+
+    /* ── 10. Char counter ── */
+    function countChars(textarea) {
+      var count = textarea.value.length;
+      var display = document.getElementById('char-num');
+      display.textContent = count;
+      if (count > 300) display.style.color = '#EF4444';
+      else if (count > 200) display.style.color = '#F59E0B';
+      else display.style.color = '#7A8BAA';
+      updateJSON();
+    }
+
+    /* ── 11. Step bar ── */
+    function updateStepBar(step) {
+      for (var s = 1; s <= step; s++) document.getElementById('dot-' + s).classList.add('active');
+      if (step >= 2) document.getElementById('line-1').style.background = '#2B7FFF';
+      if (step >= 3) document.getElementById('line-2').style.background = '#2B7FFF';
+    }
+
+    /* ── 12. JSON preview ── */
+    function updateJSON() {
+      var reportObject = {
+        id: "CT-" + Math.floor(Math.random() * 90000 + 10000),
+        timestamp: new Date().toISOString(),
+        issue_type: document.getElementById('issue-type').value || null,
+        severity: selectedSeverity || null,
+        location: {
+          address: document.getElementById('location').value || null,
+          latitude: pickedLat ? parseFloat(pickedLat) : null,
+          longitude: pickedLng ? parseFloat(pickedLng) : null
+        },
+        reporter: { name: document.getElementById('reporter-name').value || null, phone: document.getElementById('phone').value || null },
+        description: document.getElementById('description').value || null,
+        photos: uploadedFiles,
+        status: "Pending",
+        assigned_to: null
+      };
+      document.getElementById('json-content').textContent = JSON.stringify(reportObject, null, 2);
+    }
+
+    function toggleJSON() {
+      var box = document.getElementById('json-box'), arrow = document.getElementById('json-arrow');
+      if (box.style.display === 'none') { box.style.display = 'block'; arrow.textContent = '▲'; updateJSON(); }
+      else { box.style.display = 'none'; arrow.textContent = '▼'; }
+    }
+
+    /* ── 13. Build full trackable + admin-compatible complaint object ── */
+    function buildComplaintObject(trackingId, issueType, severity, locationAddress, reporterName, reporterPhone, description) {
+      var now = new Date();
+      var meta = issueMeta[issueType] || issueMeta['other'];
+
+      var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      var filedStr  = now.getDate() + ' ' + months[now.getMonth()] + ' ' + now.getFullYear();
+      var timeStr   = now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+      var filedFull = filedStr + ', ' + timeStr;
+
+      var addressShort = locationAddress ? locationAddress.split(',')[0] : 'Ward 12, Mumbai';
+
+      /* Map severity to priority (high severity overrides issue default) */
+      var priority = severity === 'high' ? 'high' : (severity === 'medium' ? 'medium' : 'low');
+      /* Escalate specific issue types */
+      if (issueType === 'water' && severity === 'high') priority = 'critical';
+
+      return {
+        /* ── Core IDs ── */
+        id: trackingId,
+        timestamp: now.toISOString(),
+
+        /* ── Issue identity (admin card format) ── */
+        type: meta.label,
+        icon: meta.icon,
+        iconBg: meta.iconBg,
+        title: meta.label + ' — ' + addressShort,
+
+        /* ── Location ── */
+        location: locationAddress || 'Ward 12, Mumbai',
+        ward: meta.ward,
+        city: meta.city,
+        lat: pickedLat ? parseFloat(pickedLat) : 19.076,
+        lng: pickedLng ? parseFloat(pickedLng) : 72.877,
+
+        /* ── Filing info ── */
+        filed: filedStr,
+        filedFull: filedFull,
+        daysOpen: 0,
+
+        /* ── Status & priority ── */
+        status: 'pending',
+        priority: priority,
+        severity: 6,   /* numeric 1-10 for admin card */
+        progress: 10,
+
+        /* ── Reporter ── */
+        reporter: reporterName,
+        reporterInit: reporterName ? reporterName.charAt(0).toUpperCase() : '?',
+        phone: reporterPhone || null,
+
+        /* ── Department ── */
+        assignedTo: 'Unassigned',
+        dept: meta.dept,
+        deptContact: meta.deptPhone,
+        deptEmail: meta.deptEmail,
+        etaDays: meta.eta,
+
+        /* ── Description & media ── */
+        desc: description,
+        description: description,
+        tags: [meta.label, severity.charAt(0).toUpperCase() + severity.slice(1) + ' Severity', 'New Report'],
+        photos: uploadedFiles.slice(),
+
+        /* ── Impact (defaults) ── */
+        affectedRadius: '200m',
+        affectedPeople: '~100',
+
+        /* ── Timeline ── */
+        timeline: [
+          { s: 'done',   step: 'Filed & Logged',   time: filedFull, note: 'Submitted via CivicTrack citizen portal.' },
+          { s: 'active', step: 'Under Review',      time: 'Pending', note: 'Awaiting admin verification.' },
+          { s: 'wait',   step: 'Team Assigned',     time: 'Pending', note: '' },
+          { s: 'wait',   step: 'Work In Progress',  time: 'Pending', note: '' },
+          { s: 'wait',   step: 'Quality Check',     time: 'Pending', note: '' },
+          { s: 'wait',   step: 'Resolved',          time: 'Pending', note: '' }
+        ],
+
+        /* ── Activity updates (for track1.html) ── */
+        updates: [
+          {
+            text: "Complaint received and logged",
+            detail: "Your report has been successfully submitted to " + meta.dept,
+            time: filedFull,
+            color: "ud-green"
+          }
+        ],
+        nearby: [],
+
+        /* ── Flags ── */
+        userFiled: true,
+        fromCitizen: true
+      };
+    }
+
+    /* ── 14. Form validation + submit ── */
+    function submitForm(e) {
+      e.preventDefault();
+
+      var fields = [
+        { id: "issue-type",    errId: "err-type",     msg: "Please select an issue type." },
+        { id: "location",      errId: "err-location",  msg: "Please enter a location." },
+        { id: "reporter-name", errId: "err-name",      msg: "Please enter your name." },
+        { id: "description",   errId: "err-desc",      msg: "Please describe the issue." }
+      ];
+
+      var isValid = true;
+      for (var i = 0; i < fields.length; i++) {
+        var val = document.getElementById(fields[i].id).value.trim();
+        var errEl = document.getElementById(fields[i].errId);
+        if (val === '') { errEl.textContent = fields[i].msg; isValid = false; }
+        else { errEl.textContent = ''; }
+      }
+
+      if (selectedSeverity === '') {
+        document.getElementById('err-severity').textContent = 'Please select a severity level.';
+        isValid = false;
+      }
+
+      if (!document.getElementById('declare').checked) {
+        document.getElementById('err-declare').textContent = 'Please confirm the declaration.';
+        isValid = false;
+      } else {
+        document.getElementById('err-declare').textContent = '';
+      }
+
+      if (!isValid) return;
+
+      /* Generate unique tracking ID */
+      var trackingId = 'CT-' + new Date().getFullYear() + '-' + Math.floor(Math.random() * 9000 + 1000);
+
+      var issueType    = document.getElementById('issue-type').value;
+      var locationAddr = document.getElementById('location').value;
+      var reporterName = document.getElementById('reporter-name').value;
+      var reporterPhone= document.getElementById('phone').value;
+      var description  = document.getElementById('description').value;
+
+      /* Build the full complaint object (compatible with both track1.html and admincomp.html) */
+      var complaint = buildComplaintObject(trackingId, issueType, selectedSeverity, locationAddr, reporterName, reporterPhone, description);
+
+      /* ── SAVE via CivicBridge → localStorage (admin) + sessionStorage (track) ── */
+      CivicBridge.saveComplaint(complaint);
+
+      /* Show loading */
+      var btn = document.getElementById('submit-btn');
+      btn.disabled = true;
+      document.getElementById('btn-text').textContent = 'Submitting...';
+
+      setTimeout(function() {
+        document.getElementById('tracking-id').textContent = trackingId;
+        document.getElementById('report-form').style.display = 'none';
+
+        var meta = issueMeta[issueType] || issueMeta['other'];
+        document.getElementById('success-details').innerHTML =
+          '<div class="success-row"><span>Type</span><span>' + meta.label + '</span></div>' +
+          '<div class="success-row"><span>Severity</span><span>' + selectedSeverity + '</span></div>' +
+          '<div class="success-row"><span>Location</span><span>' + (locationAddr || '—').split(',')[0] + '</span></div>' +
+          '<div class="success-row"><span>Reporter</span><span>' + reporterName + '</span></div>';
+
+        document.getElementById('success-card').style.display = 'flex';
+        document.getElementById('success-card').classList.add('show');
+        updateStepBar(3);
+      }, 1400);
+    }
+
+    /* ── 15. Copy tracking ID ── */
+    function copyTrackingId() {
+      var id = document.getElementById('tracking-id').textContent;
+      var btn = document.getElementById('copy-id-btn');
+      navigator.clipboard.writeText(id).then(function() {
+        btn.textContent = '✓ Copied!'; btn.style.color = '#16C784';
+        setTimeout(function() { btn.textContent = '📋 Copy ID'; btn.style.color = ''; }, 2000);
+      });
+    }
+
+    /* ── INIT ── */
+    renderLiveFeed();
+    animateCount('ms-1', 1200, '+');
+    setTimeout(initMap, 100);
+
+    var savedName = sessionStorage.getItem('userName');
+    if (savedName) document.getElementById('reporter-name').value = savedName;
+
+    document.addEventListener('click', function(e) {
+      if (!e.target.closest('#location') && !e.target.closest('#location-suggestions'))
+        document.getElementById('location-suggestions').innerHTML = '';
+    });
+
+  </script>
+</body>
+</html>

@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>CivicTrack - Citizen Home</title>
+  <link rel="stylesheet" href="css/userprofile.css"/>
+</head>
+<body>
+
+  <!-- NOTIFICATION PANEL -->
+  <input type="checkbox" id="notif-toggle"/>
+  <label class="notif-overlay" for="notif-toggle"></label>
+
+  <div class="notif-panel">
+    <div class="notif-header">
+      <h4>🔔 Notifications</h4>
+      <label for="notif-toggle">✕</label>
+    </div>
+    <div class="notif-list" id="notif-list">
+      <!-- Populated dynamically -->
+    </div>
+    <div class="notif-footer"><a href="#">View all notifications →</a></div>
+  </div>
+
+  <!-- HEADER -->
+  <header>
+    <nav>
+      <div class="header-left">
+        <div>
+          <div class="logo"><span class="logo-dot"></span>CivicTrack</div>
+          <div class="logo-sub">Smart Urban Civic Management</div>
+        </div>
+      </div>
+      <div class="header-right">
+        <label class="notif-btn" for="notif-toggle" title="Notifications">
+          <span>🔔</span>
+          <div class="notif-badge" id="notif-badge">0</div>
+        </label>
+        <div class="header-user">
+          <span>👤 <span id="header-name">User</span></span>
+          Ward 12, Mumbai
+        </div>
+        <a href="index.html" class="logout-btn">Logout</a>
+      </div>
+    </nav>
+  </header>
+
+  <!-- WELCOME BANNER -->
+  <div class="welcome">
+    <div class="welcome-inner">
+      <div>
+        <h2>Welcome back, <span id="welcome-firstname">there</span>! 👋</h2>
+        <p>What would you like to do today?</p>
+      </div>
+      <div class="welcome-badges" id="welcome-badges">
+        <!-- Populated dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+
+    <!-- QUICK ACTIONS -->
+    <p class="section-title">⚡ Quick Actions</p>
+    <div class="cards-grid">
+      <a href="report1.html" class="menu-card">
+        <span class="icon">📝</span>
+        <h3>File a Complaint</h3>
+        <p>Report broken roads, water leakage or street lights</p>
+      </a>
+      <a href="track1.html" class="menu-card">
+        <span class="icon">🔍</span>
+        <h3>Track Complaint</h3>
+        <p>Check the live status of your complaint by ID</p>
+      </a>
+      <a href="waterusage.html" class="menu-card">
+        <span class="icon">💧</span>
+        <h3>Water Usage</h3>
+        <p>Check consumption and any penalty for your household</p>
+      </a>
+    </div>
+
+    <!-- RECENT COMPLAINTS TABLE -->
+    <p class="section-title">🗂️ Recent Complaints</p>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Tracking ID</th>
+            <th>Issue Type</th>
+            <th>Date Filed</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="complaints-tbody">
+          <!-- Populated dynamically -->
+        </tbody>
+      </table>
+    </div>
+
+    <!-- TIMELINE -->
+    <p class="section-title">🕐 Complaint Status Timeline</p>
+    <div class="timeline-box">
+      <div class="timeline-box-header">
+        <h4>Live progress of your active complaints</h4>
+        <a href="track1.html">Track all →</a>
+      </div>
+      <div id="timeline-container">
+        <!-- Populated dynamically -->
+      </div>
+    </div>
+
+    <!-- SAVED / FOLLOWED -->
+    <p class="section-title">🔖 Saved / Followed Issues</p>
+    <div class="saved-section">
+      <input type="checkbox" id="saved-toggle"/>
+      <div class="saved-tabs">
+        <label class="saved-tab-label" for="saved-toggle" id="tab-bookmarked">🔖 Bookmarked Issues</label>
+        <label class="saved-tab-label" for="saved-toggle" id="tab-locality">📍 Issues in My Locality</label>
+      </div>
+      <div class="saved-content">
+        <div class="tab-panel" id="panel-bookmarked">
+          <div class="saved-item">
+            <div class="si-left">
+              <h5>CT-2025-0035 — Garbage Overflow</h5>
+              <p>📍 Station Road, Ward 9 &nbsp;|&nbsp; Filed: 08 Mar 2025</p>
+            </div>
+            <div class="si-right">
+              <span class="status status-pending">Pending</span>
+              <span class="bookmark-icon">🔖</span>
+              <a href="track1.html" class="view-link">View</a>
+            </div>
+          </div>
+          <div class="saved-item">
+            <div class="si-left">
+              <h5>CT-2025-0027 — Broken Footpath</h5>
+              <p>📍 Market Lane, Ward 3 &nbsp;|&nbsp; Filed: 05 Mar 2025</p>
+            </div>
+            <div class="si-right">
+              <span class="status status-progress">In Progress</span>
+              <span class="bookmark-icon">🔖</span>
+              <a href="track1.html" class="view-link">View</a>
+            </div>
+          </div>
+          <div class="saved-item">
+            <div class="si-left">
+              <h5>CT-2025-0019 — Street Light Out</h5>
+              <p>📍 Park Street, Ward 12 &nbsp;|&nbsp; Filed: 28 Feb 2025</p>
+            </div>
+            <div class="si-right">
+              <span class="status status-resolved">Resolved</span>
+              <span class="bookmark-icon">🔖</span>
+              <a href="track1.html" class="view-link">View</a>
+            </div>
+          </div>
+        </div>
+        <div class="tab-panel" id="panel-locality">
+          <div class="saved-item">
+            <div class="si-left">
+              <h5>CT-2025-0044 — Water Leakage</h5>
+              <p>📍 Near S.V. Road, Ward 12 &nbsp;|&nbsp; Filed: 12 Mar 2025</p>
+            </div>
+            <div class="si-right">
+              <span class="status status-pending">Pending</span>
+              <a href="track1.html" class="view-link">View</a>
+            </div>
+          </div>
+          <div class="saved-item">
+            <div class="si-left">
+              <h5>CT-2025-0039 — Broken Road</h5>
+              <p>📍 Andheri West Market, Ward 12 &nbsp;|&nbsp; Filed: 09 Mar 2025</p>
+            </div>
+            <div class="si-right">
+              <span class="status status-progress">In Progress</span>
+              <a href="track1.html" class="view-link">View</a>
+            </div>
+          </div>
+          <div class="saved-item">
+            <div class="si-left">
+              <h5>CT-2025-0031 — Drainage Block</h5>
+              <p>📍 Link Road, Ward 12 &nbsp;|&nbsp; Filed: 03 Mar 2025</p>
+            </div>
+            <div class="si-right">
+              <span class="status status-progress">In Progress</span>
+              <a href="track1.html" class="view-link">View</a>
+            </div>
+          </div>
+          <div class="saved-item">
+            <div class="si-left">
+              <h5>CT-2025-0022 — Garbage Overflow</h5>
+              <p>📍 Andheri Station Area, Ward 12 &nbsp;|&nbsp; Filed: 22 Feb 2025</p>
+            </div>
+            <div class="si-right">
+              <span class="status status-resolved">Resolved</span>
+              <a href="track1.html" class="view-link">View</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <footer>&copy; 2026 CivicTrack &nbsp;|&nbsp; Smart Civic Management Platform</footer>
+
+  <script>
+    /* ══════════════════════════════════════════════════
+       DASHBOARD INIT
+    ══════════════════════════════════════════════════ */
+
+    /* ── User identity ── */
+    var userName  = sessionStorage.getItem('userName')  || 'User';
+    var userEmail = sessionStorage.getItem('userEmail') || '—';
+    var firstName = userName.split(' ')[0];
+
+    document.getElementById('header-name').textContent    = userName;
+    document.getElementById('welcome-firstname').textContent = firstName;
+
+    /* ══════════════════════════════════════════════════
+       LOAD COMPLAINTS from sessionStorage
+    ══════════════════════════════════════════════════ */
+
+    /* Hardcoded fallback complaints (same 3 demo ones) shown when user has no filed complaints */
+    var demoComplaints = [
+      { id: 'CT-2025-0041', type: 'Broken Road',      filed: '10 Mar 2025', status: 'In Progress', icon: '🛣️', progress: 3 },
+      { id: 'CT-2025-0038', type: 'Water Leakage',    filed: '06 Mar 2025', status: 'Pending',     icon: '💧', progress: 2 },
+      { id: 'CT-2025-0029', type: 'Street Light Out', filed: '28 Feb 2025', status: 'Resolved',    icon: '💡', progress: 6 },
+      { id: 'CT-2025-0021', type: 'Garbage Overflow', filed: '20 Feb 2025', status: 'In Progress', icon: '🗑️', progress: 3 }
+    ];
+
+    /* Read user-filed complaints */
+    var userComplaints = JSON.parse(sessionStorage.getItem('userComplaints') || '[]');
+
+    /* Combine: user complaints first (newest), then demo ones below */
+    var allComplaints = userComplaints.map(function(c) {
+      /* Map full complaint object to the summary shape used by dashboard */
+      return {
+        id:     c.id,
+        type:   c.type,
+        filed:  c.filed,
+        status: c.status,
+        icon:   c.icon,
+        /* Compute step number from timeline */
+        progress: (function() {
+          var step = 0;
+          if (c.timeline) {
+            for (var i = 0; i < c.timeline.length; i++) {
+              if (c.timeline[i].status === 'done' || c.timeline[i].status === 'active') step = i + 1;
+            }
+          }
+          return step || 1;
+        })(),
+        userFiled: true
+      };
+    }).concat(demoComplaints);
+
+    /* ── Badge counts ── */
+    var totalCount    = allComplaints.length;
+    var pendingCount  = allComplaints.filter(function(c) { return c.status === 'Pending'; }).length;
+    var progressCount = allComplaints.filter(function(c) { return c.status === 'In Progress'; }).length;
+    var resolvedCount = allComplaints.filter(function(c) { return c.status === 'Resolved'; }).length;
+
+    /* ── Welcome badges ── */
+    document.getElementById('welcome-badges').innerHTML =
+      '<div class="w-badge"><div class="w-badge-num">'          + totalCount    + '</div><div class="w-badge-label">Complaints</div></div>' +
+      '<div class="w-badge"><div class="w-badge-num amber">'    + pendingCount  + '</div><div class="w-badge-label">Pending</div></div>' +
+      '<div class="w-badge"><div class="w-badge-num blue">'     + progressCount + '</div><div class="w-badge-label">In Progress</div></div>' +
+      '<div class="w-badge"><div class="w-badge-num green">'    + resolvedCount + '</div><div class="w-badge-label">Resolved</div></div>' +
+      '<div class="w-badge"><div class="w-badge-num red">₹200</div><div class="w-badge-label">Penalty Due</div></div>';
+
+    /* ── Complaints table ── */
+    function statusClass(s) {
+      return s === 'Resolved' ? 'status-resolved' : s === 'In Progress' ? 'status-progress' : 'status-pending';
+    }
+
+    var tbody = document.getElementById('complaints-tbody');
+    var tableRows = '';
+    /* Show latest 6 */
+    var tableList = allComplaints.slice(0, 6);
+    for (var i = 0; i < tableList.length; i++) {
+      var c = tableList[i];
+      tableRows +=
+        '<tr>' +
+          '<td><a href="track1.html?id=' + c.id + '" class="td-link">' + c.id + '</a>' +
+          (c.userFiled ? ' <span style="font-size:10px;background:rgba(43,127,255,0.15);color:#7AB2FF;padding:2px 6px;border-radius:20px;vertical-align:middle;">yours</span>' : '') +
+          '</td>' +
+          '<td>' + (c.icon || '') + ' ' + c.type + '</td>' +
+          '<td>' + c.filed + '</td>' +
+          '<td><span class="status ' + statusClass(c.status) + '">' + c.status + '</span></td>' +
+        '</tr>';
+    }
+    tbody.innerHTML = tableRows;
+
+    /* ══════════════════════════════════════════════════
+       TIMELINE SECTION
+    ══════════════════════════════════════════════════ */
+
+    /* Steps config for 5-step visual */
+    var STEP_LABELS = ['Report\nSubmitted', 'Verified', 'In\nProgress', 'Quality\nCheck', 'Resolved'];
+    /* Map full timeline index → 5-step display index */
+    function toDisplayStep(fullStep) {
+      /* fullStep: 1=Submitted,2=Verified,3=Assigned,4=InProgress,5=QC,6=Resolved */
+      var map5 = [0, 0, 1, 2, 3, 4];
+      return map5[Math.min(fullStep, 5)] || 0;
+    }
+
+    function buildTimelineHTML(c) {
+      /* Determine current step (1-based, up to 6) */
+      var currentStep = c.progress || 1; /* c.progress stores step number for dashboard list */
+
+      /* Map to 5-dot display */
+      var displayCurrent = toDisplayStep(currentStep);
+
+      var stepsHTML = '';
+      for (var s = 0; s < 5; s++) {
+        var isDone   = s < displayCurrent;
+        var isActive = s === displayCurrent && c.status !== 'Resolved';
+        var isResolved = c.status === 'Resolved';
+
+        var circleClass = isResolved || isDone ? 'done' : isActive ? 'active' : 'pending';
+        var lineClass   = (isResolved || s < displayCurrent) ? 'done' : 'pending';
+        var labelClass  = isResolved || isDone ? 'done' : isActive ? 'active' : '';
+
+        var circleContent = (isResolved || isDone) ? '✓' : isActive ? '→' : (s + 1);
+        var labelLines = STEP_LABELS[s].split('\n');
+        var labelHTML = labelLines[0] + (labelLines[1] ? '<br/>' + labelLines[1] : '');
+
+        if (s < 4) {
+          stepsHTML +=
+            '<div class="step-wrap">' +
+              '<div class="step-node">' +
+                '<div class="step-circle ' + circleClass + '">' + circleContent + '</div>' +
+                '<div class="step-label ' + labelClass + '">' + labelHTML + '</div>' +
+              '</div>' +
+              '<div class="step-line ' + lineClass + '"></div>' +
+            '</div>';
+        } else {
+          stepsHTML +=
+            '<div class="step-node">' +
+              '<div class="step-circle ' + circleClass + '">' + circleContent + '</div>' +
+              '<div class="step-label ' + labelClass + '">' + labelHTML + '</div>' +
+            '</div>';
+        }
+      }
+
+      return '<div class="timeline-complaint">' +
+        '<div class="tc-top">' +
+          '<div>' +
+            '<div class="tc-id">' + c.id + (c.userFiled ? ' <span style="font-size:10px;background:rgba(43,127,255,0.15);color:#7AB2FF;padding:2px 6px;border-radius:20px;">yours</span>' : '') + '</div>' +
+            '<div class="tc-type">' + (c.icon || '') + ' ' + c.type + '</div>' +
+          '</div>' +
+          '<div class="tc-date">Filed: ' + c.filed + '</div>' +
+        '</div>' +
+        '<div class="timeline-steps">' + stepsHTML + '</div>' +
+      '</div>';
+    }
+
+    /* Render timelines for non-resolved complaints (show up to 5) */
+    var timelineContainer = document.getElementById('timeline-container');
+    var activeComplaints = allComplaints.filter(function(c) { return c.status !== 'Resolved'; }).slice(0, 5);
+
+    if (activeComplaints.length === 0) {
+      /* All resolved — show a nice message */
+      timelineContainer.innerHTML =
+        '<div style="text-align:center;padding:32px;color:#7A8BAA;">' +
+          '<span style="font-size:40px;">🎉</span>' +
+          '<p style="margin-top:12px;font-size:15px;">All your complaints have been resolved!</p>' +
+        '</div>';
+    } else {
+      var tlHTML = '';
+      for (var t = 0; t < activeComplaints.length; t++) {
+        tlHTML += buildTimelineHTML(activeComplaints[t]);
+      }
+      timelineContainer.innerHTML = tlHTML;
+    }
+
+    /* ══════════════════════════════════════════════════
+       NOTIFICATIONS — dynamic based on user complaints
+    ══════════════════════════════════════════════════ */
+
+    var notifList = document.getElementById('notif-list');
+    var notifHTML = '';
+    var unreadCount = 0;
+
+    /* Show notification for each user-filed complaint */
+    for (var n = 0; n < Math.min(userComplaints.length, 3); n++) {
+      var uc = userComplaints[n];
+      notifHTML +=
+        '<div class="notif-item unread">' +
+          '<span class="ni-icon">' + uc.icon + '</span>' +
+          '<div class="ni-body">' +
+            '<h5>' + uc.id + ' Filed</h5>' +
+            '<p>Your <strong>' + uc.type + '</strong> complaint has been registered and is <strong>Pending</strong> review.</p>' +
+            '<div class="ni-time">' + uc.filed + '</div>' +
+          '</div>' +
+        '</div>';
+      unreadCount++;
+    }
+
+    /* Always show the static penalty and welcome notifications */
+    notifHTML +=
+      '<div class="notif-item unread-red">' +
+        '<span class="ni-icon">💸</span>' +
+        '<div class="ni-body">' +
+          '<h5>Water Penalty Issued</h5>' +
+          '<p>320L usage in March exceeds limit. Penalty: <strong>₹200</strong></p>' +
+          '<div class="ni-time">Today, 10:30 AM</div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="notif-item unread">' +
+        '<span class="ni-icon">📋</span>' +
+        '<div class="ni-body">' +
+          '<h5>CT-2025-0041 Updated</h5>' +
+          '<p>Your Broken Road complaint is now <strong>In Progress</strong></p>' +
+          '<div class="ni-time">Yesterday, 3:45 PM</div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="notif-item unread-amber">' +
+        '<span class="ni-icon">💧</span>' +
+        '<div class="ni-body">' +
+          '<h5>Water Usage Warning</h5>' +
+          '<p>February usage: 260L — approaching limit</p>' +
+          '<div class="ni-time">1 Mar 2025</div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="notif-item">' +
+        '<span class="ni-icon">✅</span>' +
+        '<div class="ni-body">' +
+          '<h5>CT-2025-0029 Resolved</h5>' +
+          '<p>Street Light complaint has been resolved</p>' +
+          '<div class="ni-time">2 Mar 2025</div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="notif-item">' +
+        '<span class="ni-icon">🎉</span>' +
+        '<div class="ni-body">' +
+          '<h5>Welcome to CivicTrack!</h5>' +
+          '<p>Your account was created successfully</p>' +
+          '<div class="ni-time">15 Jan 2025</div>' +
+        '</div>' +
+      '</div>';
+
+    notifList.innerHTML = notifHTML;
+
+    /* Badge count: user complaints + 3 static unread */
+    unreadCount += 3;
+    document.getElementById('notif-badge').textContent = unreadCount;
+
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>CivicTrack - Welcome!</title>
+  <link rel="stylesheet" href="css/newuser.css">
+</head>
+<body>
+
+  <div class="toast" id="toast">
+    <span class="toast-icon">🎉</span>
+    <div>
+      <h5>Account Created!</h5>
+      <p>Welcome to CivicTrack, <span id="toast-name">there</span>!</p>
+    </div>
+  </div>
+
+  <!-- HEADER -->
+  <header>
+    <nav>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div>
+          <div class="logo"><span class="logo-dot"></span>CivicTrack</div>
+          <div class="logo-sub">Smart Urban Civic Management</div>
+        </div>
+      </div>
+      <div class="header-right">
+        <div class="header-user">
+          <span>👤 <span id="header-name">User</span></span>
+          New Member · Mumbai
+        </div>
+        <a href="index.html" class="logout-btn" onclick="logout()">Logout</a>
+      </div>
+    </nav>
+  </header>
+
+  <!-- WELCOME HERO -->
+  <div class="welcome-hero">
+    <div class="new-badge">✨ New Member</div>
+    <h1>Welcome to <span>CivicTrack</span>, <span id="hero-name">there</span>!</h1>
+    <p>Your account is all set. You're now part of a community making cities cleaner and smarter — one complaint at a time.</p>
+
+    <div class="profile-card">
+      <div class="profile-card-top">
+        <span>Profile Completion</span>
+        <strong id="profile-percent">30%</strong>
+      </div>
+      <div class="profile-bar-track">
+        <div class="profile-bar-fill"></div>
+      </div>
+      <div class="profile-steps">
+        <div class="profile-step done">✓ Account Created</div>
+        <div class="profile-step active">→ Complete Profile</div>
+        <div class="profile-step">File First Complaint</div>
+        <div class="profile-step">Verify Mobile</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+
+    <!-- GET STARTED-->
+    <p class="section-title">🚀 Get Started — 4 Easy Steps</p>
+    <div class="onboarding-grid">
+
+      <div class="onboard-card completed">
+        <div class="step-number">1</div>
+        <span class="onboard-icon">🎉</span>
+        <h3>Create Your Account</h3>
+        <p>You've successfully signed up and joined CivicTrack. Your journey starts here!</p>
+        <span class="onboard-btn btn-done">✓ Completed</span>
+      </div>
+
+      <div class="onboard-card" id="card-complaint">
+        <div class="step-number">2</div>
+        <span class="onboard-icon">📝</span>
+        <h3>File Your First Complaint</h3>
+        <p>Spotted a pothole or water leak? Report it now and get a unique Tracking ID instantly.</p>
+        <a href="report.html" class="onboard-btn btn-blue" onclick="markDone('card-complaint', this)">File a Complaint →</a>
+      </div>
+
+      <div class="onboard-card" id="card-track">
+        <div class="step-number">3</div>
+        <span class="onboard-icon">🔍</span>
+        <h3>Track Your Complaint</h3>
+        <p>After filing, use your Tracking ID to check real-time progress of your complaint.</p>
+        <a href="track.html" class="onboard-btn btn-blue" onclick="markDone('card-track', this)">Track Complaint →</a>
+      </div>
+
+      <div class="onboard-card" id="card-water">
+        <div class="step-number">4</div>
+        <span class="onboard-icon">💧</span>
+        <h3>Check Water Usage</h3>
+        <p>Monitor your monthly water consumption and avoid penalties before they're issued.</p>
+        <a href="newwater.html" class="onboard-btn btn-blue" onclick="markDone('card-water', this)">View Water Usage →</a>
+      </div>
+
+    </div>
+
+    <div class="first-report-cta">
+      <h2>Seen something that needs fixing? 👀</h2>
+      <p>Your first report takes less than 60 seconds. Broken road, leaking pipe, overflowing garbage — report it now and help make your city better.</p>
+      <div class="cta-btns">
+        <a href="report.html" class="btn-cta-blue">📝 File My First Complaint</a>
+        <a href="track.html" class="btn-cta-ghost">🔍 Track a Complaint</a>
+      </div>
+    </div>
+
+    <p class="section-title">📖 How CivicTrack Works</p>
+    <div class="how-card">
+      <div class="how-header"><h3>From complaint to resolution — here's the journey</h3></div>
+      <div class="how-steps">
+        <div class="how-step"><div class="how-num">1</div><h4>You Report</h4><p>Submit issue type, location, description and a photo. Takes under 60 seconds.</p></div>
+        <div class="how-step"><div class="how-num">2</div><h4>ID Generated</h4><p>A unique Tracking ID like CT-2025-0041 is created instantly for your complaint.</p></div>
+        <div class="how-step"><div class="how-num">3</div><h4>Team Assigned</h4><p>Municipal authority reviews and assigns the right department to fix the issue.</p></div>
+        <div class="how-step"><div class="how-num">4</div><h4>Issue Resolved</h4><p>You get notified when work is complete. Rate the resolution to give feedback.</p></div>
+      </div>
+    </div>
+
+    <p class="section-title">🗂️ My Complaints</p>
+    <div class="empty-state">
+      <span class="empty-icon">📋</span>
+      <h3>No complaints yet</h3>
+      <p>You haven't filed any complaints yet. Once you do, they'll appear here with full timeline tracking.</p>
+      <a href="report.html" class="btn-cta-blue" style="display:inline-block;padding:12px 26px;border-radius:8px;font-size:14px;font-weight:500;">📝 File Your First Complaint</a>
+    </div>
+
+    <p class="section-title">💡 Tips for New Members</p>
+    <div class="tips-grid">
+      <div class="tip-card"><span class="tip-icon">📸</span><h4>Always attach a photo</h4><p>Complaints with photos are resolved 2x faster. Even a blurry photo from your phone helps authorities confirm the issue.</p><span class="tip-saving">⚡ 2× faster resolution</span></div>
+      <div class="tip-card"><span class="tip-icon">📍</span><h4>Be specific with location</h4><p>Mention a nearby landmark — "near the red gate of Sector 12 park" works better than just the street name.</p><span class="tip-saving">📍 Helps teams find it fast</span></div>
+      <div class="tip-card"><span class="tip-icon">💧</span><h4>Monitor water monthly</h4><p>Check your water usage before the end of each month. Going over 300L triggers a fine — stay in the safe zone.</p><span class="tip-saving">💰 Avoid ₹200–₹700 penalty</span></div>
+    </div>
+
+    <p class="section-title">🌐 What's Happening in Your Area</p>
+    <div class="feed-card">
+      <div class="feed-header">
+        <h3>Live Community Feed — Ward 12, Mumbai</h3>
+        <div class="live-pill"><span class="live-dot"></span>Live</div>
+      </div>
+      <div class="feed-item" style="animation-delay:0.1s;"><div class="feed-icon fi-blue">📋</div><div class="feed-text"><h5>New complaint filed — Water Leakage</h5><p>Near S.V. Road, Ward 12 — awaiting assignment</p></div><div class="feed-time">5 min ago</div></div>
+      <div class="feed-item" style="animation-delay:0.2s;"><div class="feed-icon fi-green">✅</div><div class="feed-text"><h5>CT-2025-0029 — Street Light Resolved</h5><p>Park Street, Ward 12 — fixed by Electrical dept.</p></div><div class="feed-time">2h ago</div></div>
+      <div class="feed-item" style="animation-delay:0.3s;"><div class="feed-icon fi-amber">⚠️</div><div class="feed-text"><h5>Water Usage Warning — 3 households</h5><p>Ward 12 — approaching monthly limit this month</p></div><div class="feed-time">Yesterday</div></div>
+      <div class="feed-item" style="animation-delay:0.4s;"><div class="feed-icon fi-blue">🔧</div><div class="feed-text"><h5>CT-2025-0039 — Road repair in progress</h5><p>Andheri West Market, Ward 12 — team dispatched</p></div><div class="feed-time">Yesterday</div></div>
+      <div class="feed-item" style="animation-delay:0.5s;"><div class="feed-icon fi-green">🗑️</div><div class="feed-text"><h5>Garbage collection completed</h5><p>All sectors in Ward 12 cleared this morning</p></div><div class="feed-time">2 days ago</div></div>
+    </div>
+
+  </div>
+
+  <footer>&copy; 2026 CivicTrack &nbsp;|&nbsp; Smart Civic Management Platform</footer>
+
+  <script>
+    var userName  = sessionStorage.getItem('userName')  || 'there';
+    var firstName = userName.split(' ')[0];
+
+    document.getElementById('toast-name').textContent  = firstName;
+    document.getElementById('header-name').textContent = userName;
+    document.getElementById('hero-name').textContent   = firstName;
+
+    function logout() {
+      sessionStorage.removeItem('loggedIn');
+      sessionStorage.removeItem('userName');
+      sessionStorage.removeItem('userEmail');
+      window.location.href = 'user_login.html';
+    }
+
+    function showToast() {
+      var toast = document.getElementById("toast");
+      toast.classList.add("show");
+      setTimeout(function() { toast.classList.remove("show"); }, 4000);
+    }
+
+    var completedCount = 1;
+
+    function markDone(cardId, btn) {
+      var card = document.getElementById(cardId);
+      if (card) {
+        card.classList.add("completed");
+        btn.className  = "onboard-btn btn-done";
+        btn.innerHTML  = "✓ Done";
+        completedCount++;
+        var percent = Math.min(Math.round((completedCount / 4) * 100), 100);
+        document.getElementById("profile-percent").innerHTML = percent + "%";
+      }
+    }
+
+    setTimeout(showToast, 800);
+  </script>
+
+</body>
+</html>

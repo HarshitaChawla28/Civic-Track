@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>CivicTrack – Welcome</title>
+<!-- used to import fonts from Google Fonts into the website. -->
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&family=Sora:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="css/adminmain.css">
+</head>
+<body>
+ 
+<aside class="sidebar" id="sidebar"></aside>
+ 
+<div class="main">
+  <header class="topbar">
+    <div class="tb-left">
+      <div class="tb-title">Welcome Back</div>
+      <div class="tb-sub" id="tb-sub">Loading...</div>
+    </div>
+    <div class="tb-actions">
+      <div class="tb-date" id="tb-date"></div>
+      <div class="tb-time" id="tb-time"></div>
+    </div>
+  </header>
+ 
+  <div class="content">
+ 
+    <!-- ── HERO ── -->
+    <div class="hero">
+      <div class="hero-top">
+        <div class="hero-greeting">
+          <div class="hero-tag"><span class="hero-tag-dot"></span> Session Active &nbsp;·&nbsp; Ludhiana Municipal Authority</div>
+          <div class="hero-name">Good <span id="timeGreeting">Morning</span>,<br><span id="heroName">Authority</span> 👋</div>
+          <div class="hero-desc" id="heroDesc">You are logged in as a civic authority officer. Your dashboard gives you real-time oversight of complaints, infrastructure, water supply, sanitation, and field operations across all wards of Ludhiana.</div>
+        </div>
+        <div class="hero-meta">
+          <div class="hero-badge">
+            <div class="hero-badge-label">Access Level</div>
+            <div class="hero-badge-val" id="heroRole">—</div>
+          </div>
+          <div class="hero-badge">
+            <div class="hero-badge-label">Department</div>
+            <div class="hero-badge-val" id="heroDept">—</div>
+          </div>
+          <div class="hero-badge">
+            <div class="hero-badge-label">Last Login</div>
+            <div class="hero-badge-val">Today, <span id="heroTime">—</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="hero-divider"></div>
+      <div class="hero-stats">
+        <div class="hero-stat">
+          <div class="hero-stat-val" id="hs1">0</div>
+          <div class="hero-stat-label">Total Complaints</div>
+          <div class="hero-stat-sub hs-up">+18 this week</div>
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-val" id="hs2">0</div>
+          <div class="hero-stat-label">Pending Action</div>
+          <div class="hero-stat-sub hs-up">+12 since yesterday</div>
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-val" id="hs3">0</div>
+          <div class="hero-stat-label">Resolved Today</div>
+          <div class="hero-stat-sub hs-dn">avg 2.1 days</div>
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-val" id="hs4">0%</div>
+          <div class="hero-stat-label">Resolution Rate</div>
+          <div class="hero-stat-sub hs-up">Target: 80%</div>
+        </div>
+      </div>
+    </div>
+ 
+    <!-- ── ALERT STRIP ── -->
+    <div class="alert-strip">
+      <span style="font-size:17px">⚠️</span>
+      <div><b>2 critical issues</b> require immediate attention — Road collapse on Pakhowal Road &amp; Water overflow in Sarabha Nagar.</div>
+      <div class="alert-strip-action"><a class="btn btn-danger" href="admincomp.html">Resolve Now →</a></div>
+    </div>
+ 
+    <!-- ── QUICK STATS (3 cards) ── -->
+    <div class="row3-stats" id="quickStats"></div>
+ 
+    <!-- ── NAVIGATE TO MODULES ── -->
+    <div class="section-label">Your Modules</div>
+    <div class="mod-grid" id="modGrid"></div>
+ 
+    <!-- ── MAIN CONTENT ROW ── -->
+    <div class="row2-main">
+      <div class="card">
+        <div class="card-head">
+          <span class="card-title">Live Activity Feed</span>
+          <span style="font-size:10px;color:var(--teal);font-weight:600">● LIVE</span>
+        </div>
+        <div id="activityFeed"></div>
+      </div>
+      <div class="card">
+        <div class="card-head">
+          <span class="card-title">Today's Priority Tasks</span>
+          <span class="pill pill-pending" id="taskCount"></span>
+        </div>
+        <div id="taskList"></div>
+      </div>
+    </div>
+
+    <!-- ── WATER STATUS (full width) ── -->
+    <div class="card">
+      <div class="card-head">
+        <span class="card-title">Water Zone Status</span>
+        <a class="btn btn-ghost" href="water.html" style="font-size:11px">View All</a>
+      </div>
+      <div id="waterStatus" style="display:grid;grid-template-columns:1fr 1fr;gap:0 32px;"></div>
+    </div>
+ 
+  </div>
+</div>
+ 
+<div class="toast" id="toast"></div>
+ 
+<script>
+// ── USER ──────────────────────────────────────────────────────────────────────
+
+// This line of code is used to retrieve information about the currently logged-in user from the browser’s session storage. It tries to get the value stored under the key 'ct_user', which is expected to be a JSON string containing details like the user’s name, role, department, and city. If there is no such value in session storage (for example, if the user hasn’t logged in yet), it falls back to a default JSON string representing a generic user with the name “ADMIN,” a senior authority role, the municipal administration department, and the city “Ludhiana.” The JSON.parse() function then converts this JSON string into a JavaScript object, allowing the code to easily access properties like user.name, user.role, and user.dept throughout the dashboard. Essentially, this ensures that the user object always exists and can be used to personalize the interface.
+var user = JSON.parse(sessionStorage.getItem('ct_user') || '{"name":"ADMIN","role":"Level 3 – Senior Authority","dept":"Municipal Administration","city":"Ludhiana"}');
+ 
+// ── NAV (Citizens & Staff removed) ──
+
+// This array holds the links that appear in the sidebar. Each object represents a menu item with:
+var NAV = [
+  {href:'adminmain.html',    icon:'🏠', label:'Welcome',        badge:''},
+  {href:'admincomp.html', icon:'📋', label:'Complaints',     badge:'5'},
+  {href:'water.html',      icon:'💧', label:'Water Monitor',  badge:'2'},
+  {href:'garbage.html',    icon:'🗑️', label:'Garbage Routes', badge:''},
+];
+ 
+// ── QUICK STATS ──
+// This array defines the small statistic cards shown on the dashboard.
+// subCls is a CSS class name that is applied to the subtext of the statistic card — the small text under the main number. Its purpose is to style the subtext differently based on the context. up → usually indicates a positive change or increase, so it might be styled in green or teal.
+// dn → usually indicates a decrease or drop, so it might be styled in red.
+var QUICK_STATS = [
+  {icon:'📋', label:'Complaints',     val:312, sub:'+18 this week',   subCls:'up', cls:'blue'},
+  {icon:'⏳', label:'Pending',         val:87,  sub:'+12 yesterday',   subCls:'up', cls:'gold'},
+  {icon:'🚨', label:'Critical',        val:2,   sub:'need action now', subCls:'up', cls:'red'},
+];
+ 
+// ── MODULES (Citizens & Staff removed) ──
+// The MODULES array is a list of dashboard modules that a user can navigate to in the CivicTrack system. Each object in the array represents one module. This array defines the modules that appear on the dashboard, what they display, how they look, and where they take the user when clicked.
+var MODULES = [
+  {icon:'📋', label:'Complaints',  desc:'312 total · 87 open',  href:'admincomp.html', cls:'alert-mod'},
+  {icon:'💧', label:'Water',       desc:'2 zones over limit',    href:'water.html',     cls:'warn-mod'},
+  {icon:'🗑️', label:'Garbage',     desc:'3 overflow points',     href:'garbage.html',   cls:'warn-mod'},
+];
+ 
+// The ACTIVITY array holds a list of recent events or updates for the dashboard’s live activity feed. Each object represents one activity and has three properties: dot=A color code used to visually indicate the type or urgency of the activity. title = A short text describing the activity. time = A string showing when the activity occurred (e.g., “8 min ago” or “1 hr ago”)
+var ACTIVITY = [
+  {dot:'red',   title:'🚨 Critical: Road collapse on Pakhowal Road filed by Geeta Rani.',       time:'8 min ago'},
+  {dot:'gold',  title:'⚠️ Water consumption in Sarabha Nagar exceeded daily limit by 31%.',      time:'22 min ago'},
+  {dot:'gold',  title:'🗑️ Garbage overflow at Model Town Park reached 98% capacity.',             time:'45 min ago'},
+  {dot:'teal',  title:'✅ Complaint CT-0308 (Damaged Footpath, Civil Lines) marked Resolved.',   time:'1 hr ago'},
+  {dot:'blue',  title:'👷 Amandeep Brar assigned to Street Light repair in Sector 22.',           time:'1.5 hrs ago'},
+  {dot:'teal',  title:'✅ Complaint CT-0304 (Broken Bench, Urban Estate) marked Resolved.',      time:'3 hrs ago'},
+  {dot:'gold',  title:'📋 New complaint filed: Overflowing manhole in Gurdev Nagar (CT-0303).',  time:'4 hrs ago'},
+];
+ 
+var TASKS = [
+  {icon:'🚧', title:'Assign crew to Pakhowal Road collapse',     meta:'Critical · Road Infrastructure', pill:'pill-critical', href:'#'},
+  {icon:'💧', title:'Dispatch plumber to Sarabha Nagar leak',    meta:'High Priority · Water',           pill:'pill-critical', href:'#'},
+  {icon:'🗑️', title:'Schedule garbage pickup – Model Town',      meta:'Overflow at 98% · North Zone',    pill:'pill-pending',  href:'#'},
+  {icon:'📋', title:'Review 12 pending complaints from yesterday',meta:'87 total pending',               pill:'pill-pending',  href:'#'},
+];
+ 
+// The TASKS array contains a list of priority tasks that appear on the dashboard for the user to act on. This array drives the “Today’s Priority Tasks” section, showing users what actions are pending, highlighting urgency, and providing quick navigation to resolve them.
+var WATER = [
+  {name:'Sarabha Nagar', used:920, limit:700},
+  {name:'Model Town',    used:740, limit:700},
+  {name:'Sector 32',     used:550, limit:700},
+  {name:'Civil Lines',   used:420, limit:700},
+];
+ 
+// ── HELPERS ───────────────────────────────────────────────────────────────────
+function fillCol(p){
+  if(p>=105)
+  return'#e04545';
+  if(p>=90)
+  return'#f0a500';
+  return'#00c896';}
+function showToast(msg,type){
+  var t=document.getElementById('toast');
+  t.textContent=msg;
+  t.className='toast show '+(type||'info');setTimeout(function(){t.className='toast';},3000);}
+ 
+function countUp(el, target, isFloat, duration) {
+  var start = 0;
+  var step = target / (duration / 16);
+  var timer = setInterval(function() {
+    start = Math.min(start + step, target);
+    el.textContent = isFloat ? start.toFixed(1) + '%' : Math.round(start);
+    if (start >= target) clearInterval(timer);
+  }, 16);
+}
+ 
+// ── SIDEBAR ───────────────────────────────────────────────────────────────────
+function buildSidebar() {
+  var name = user.name || 'Authority';
+  var initials = name.split(' ').map(function(w){ return w[0]; }).join('').toUpperCase().slice(0,2);
+  var links = '';
+  for (var i = 0; i < NAV.length; i++) {
+    var n = NAV[i];
+    var active = window.location.href.indexOf(n.href) !== -1 ? 'active' : '';
+    var badge  = n.badge ? '<span class="sb-badge">' + n.badge + '</span>' : '';
+    links += '<a class="sb-link ' + active + '" href="' + n.href + '"><span class="sb-link-icon">' + n.icon + '</span>' + n.label + badge + '</a>';
+  }
+  document.getElementById('sidebar').innerHTML =
+    '<div class="sb-brand"><div class="sb-icon">🏛️</div><div><div class="sb-brand-name">CivicTrack</div><div class="sb-brand-sub">Urban Civic Management</div></div></div>' +
+    '<div class="sb-user"><div class="sb-avatar">' + initials + '</div><div><div class="sb-uname">' + name + '</div><div class="sb-urole">' + (user.role || 'Admin') + '</div></div></div>' +
+    '<div class="sb-section">Navigation</div>' + links +
+    '<div class="sb-footer"><a class="sb-logout" href="admin.html" onclick="sessionStorage.clear()">🚪 Logout</a></div>';
+}
+ 
+// ── TOPBAR ────────────────────────────────────────────────────────────────────
+function buildTopbar() {
+  var now  = new Date();
+  var h    = String(now.getHours()).padStart(2,'0');
+  var m    = String(now.getMinutes()).padStart(2,'0');
+  var days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  var dateStr = days[now.getDay()] + ', ' + now.getDate() + ' ' + months[now.getMonth()] + ' ' + now.getFullYear();
+  document.getElementById('tb-time').textContent  = h + ':' + m;
+  document.getElementById('tb-date').textContent  = dateStr;
+  document.getElementById('tb-sub').textContent   = 'Logged in as ' + (user.name || 'Authority') + ' · ' + (user.dept || 'Administration') + ' · Ludhiana';
+  var hour = now.getHours();
+  var greet = hour < 12 ? 'Morning' : hour < 17 ? 'Afternoon' : 'Evening';
+  document.getElementById('timeGreeting').textContent = greet;
+  document.getElementById('heroName').textContent     = (user.name || 'Authority').split(' ')[0];
+  document.getElementById('heroRole').textContent     = user.role || 'Admin';
+  document.getElementById('heroDept').textContent     = user.dept || 'Administration';
+  document.getElementById('heroTime').textContent     = h + ':' + m;
+}
+ 
+// ── QUICK STATS ───────────────────────────────────────────────────────────────
+function buildQuickStats() {
+  var h = '';
+  for (var i = 0; i < QUICK_STATS.length; i++) {
+    var s = QUICK_STATS[i];
+    h += '<div class="qstat ' + s.cls + '">' +
+      '<div class="qstat-icon">' + s.icon + '</div>' +
+      '<div class="qstat-label">' + s.label + '</div>' +
+      '<div class="qstat-val" id="qs' + i + '">0</div>' +
+      '<div class="qstat-sub ' + s.subCls + '">' + s.sub + '</div>' +
+    '</div>';
+  }
+  document.getElementById('quickStats').innerHTML = h;
+  setTimeout(function() {
+    for (var i = 0; i < QUICK_STATS.length; i++) {
+      countUp(document.getElementById('qs' + i), QUICK_STATS[i].val, false, 900);
+    }
+  }, 300);
+}
+ 
+// ── MODULES ───────────────────────────────────────────────────────────────────
+function buildModules() {
+  var h = '';
+  for (var i = 0; i < MODULES.length; i++) {
+    var mod = MODULES[i];
+    h += '<a class="mod-card ' + mod.cls + '" href="' + mod.href + '">' +
+      '<div class="mod-icon">' + mod.icon + '</div>' +
+      '<div class="mod-label">' + mod.label + '</div>' +
+      '<div class="mod-desc">'  + mod.desc  + '</div>' +
+    '</a>';
+  }
+  document.getElementById('modGrid').innerHTML = h;
+}
+ 
+// ── ACTIVITY FEED ─────────────────────────────────────────────────────────────
+function buildActivity() {
+  var h = '';
+  for (var i = 0; i < ACTIVITY.length; i++) {
+    var a = ACTIVITY[i];
+    h += '<div class="feed-item" style="animation-delay:' + (i * 0.07) + 's">' +
+      '<div class="feed-dot ' + a.dot + '"></div>' +
+      '<div class="feed-body">' +
+        '<div class="feed-title">' + a.title + '</div>' +
+        '<div class="feed-time">'  + a.time  + '</div>' +
+      '</div>' +
+    '</div>';
+  }
+  document.getElementById('activityFeed').innerHTML = h;
+}
+ 
+// ── TASKS ─────────────────────────────────────────────────────────────────────
+function buildTasks() {
+  document.getElementById('taskCount').textContent = TASKS.length + ' pending';
+  var h = '';
+  for (var i = 0; i < TASKS.length; i++) {
+    var t = TASKS[i];
+    h += '<div class="task-item" style="animation-delay:' + (i * 0.08) + 's">' +
+      '<div class="task-icon">' + t.icon + '</div>' +
+      '<div class="task-body">' +
+        '<div class="task-title">' + t.title + '</div>' +
+        '<div class="task-meta">'  + t.meta  + '</div>' +
+      '</div>' +
+      '<div class="task-action"><a class="btn btn-ghost" href="' + t.href + '" style="font-size:11px;padding:4px 10px">Go →</a></div>' +
+    '</div>';
+  }
+  document.getElementById('taskList').innerHTML = h;
+}
+ 
+// ── WATER STATUS ──────────────────────────────────────────────────────────────
+// This function buildWater() dynamically generates the water usage progress bars for each zone and displays them on the dashboard.
+function buildWater() {
+  // creates an empty string that will hold all the HTML for the water status cards.
+  var h = '';
+  // for (var i = 0; i < WATER.length; i++) { ... } goes through each water zone object, which has name, used, and limit properties.
+  for (var i = 0; i < WATER.length; i++) {
+// WATER is your array of water zones (like Sarabha Nagar, Model Town, etc.).
+// i is the current index in the loop.
+// This line picks the current water zone object from the array and stores it in z.
+    var z = WATER[i];
+    // This part calculates how much of a water zone’s limit has been used as a percentage, rounds it to a whole number, and caps it at 130% so the progress bar doesn’t exceed its visual container.
+    // Calculates how full the water usage is as a percentage. 
+    // z.used / z.limit * 100 gives the raw percentage of usage.
+    // Example: 920 / 700 * 100 ≈ 131.4%
+    // Math.round() rounds it to the nearest whole number → 131%.
+    // Math.min(130, …) ensures it caps the value at 130%, so the bar doesn’t overflow the design.
+    var pct = Math.min(130, Math.round(z.used / z.limit * 100));
+    // Calls the fillCol function to pick a color based on percentage.
+// If pct >= 105 → red
+// If pct >= 90 → yellow 
+// Else → teal 
+    var col = fillCol(pct);
+    // pct is the real percentage of water used. It can be more than 100% if the usage is over the limit.
+// barW is the width of the progress bar you see on the page. Even if pct is 120% or 130%, barW is capped at 100% so the bar doesn’t go outside its box.
+// pct = real value, barW = visual limit.
+    var barW = Math.min(100, pct);
+    h += '<div class="prog-wrap">' +
+      '<div class="prog-head">' +
+        '<span>' + z.name + '</span>' +
+        '<span style="color:' + col + ';font-weight:600">' + z.used + ' kL (' + pct + '%)</span>' +
+      '</div>' +
+      '<div class="prog-track"><div class="prog-fill" data-w="' + barW + '" style="background:' + col + '"></div></div>' +
+    '</div>';
+  }
+  document.getElementById('waterStatus').innerHTML = h;
+  setTimeout(function() {
+    var fills = document.querySelectorAll('.prog-fill');
+    for (var i = 0; i < fills.length; i++) {
+      fills[i].style.width = fills[i].getAttribute('data-w') + '%';
+    }
+  }, 400);
+}
+ 
+// ── HERO COUNT UPS ────────────────────────────────────────────────────────────
+function animateHero() {
+  // The animateHero() function makes the numbers in your dashboard (like total complaints, pending tasks, etc.) “count up” from 0 to their real value when the page loads. 
+  // The countUp function then increments the number inside the element (hs1, hs2, etc.) up to the target value.
+  // The second argument (false or true) decides whether to show integers (false) or decimals (true), and the last argument sets how long (in milliseconds) the counting animation takes.
+
+  setTimeout(function(){ countUp(document.getElementById('hs1'), 312,  false, 1100); }, 150);
+  // waits 150 milliseconds before starting this count.
+  setTimeout(function(){ countUp(document.getElementById('hs2'), 87,   false, 900);  }, 300);
+  // waits 300 milliseconds before starting this count.
+  setTimeout(function(){ countUp(document.getElementById('hs3'), 23,   false, 700);  }, 450);
+  // waits 450 milliseconds before starting this count.
+  setTimeout(function(){ countUp(document.getElementById('hs4'), 60.6, true,  1000); }, 600);
+  // waits 600 milliseconds before starting this count.
+}
+ 
+// ── LIVE CLOCK ────────────────────────────────────────────────────────────────
+function startClock() {
+  // The startClock() function creates a live clock on the dashboard. It uses setInterval to run every 30 seconds, getting the current time with new Date(). Then it finds the HTML element with the ID tb-time and updates its text to show the current hours and minutes in HH:MM format
+  setInterval(function() {
+    var now = new Date();
+    // Creates a new Date object representing the current date and time.
+    var el = document.getElementById('tb-time');
+    // Finds the HTML element with the ID tb-time, which is where the clock is displayed.
+    // Checks if the element exists to avoid errors.
+    if (el) 
+    // now.getHours()=now is a Date object.getHours() gets the current hour in 24-hour format (0–23).
+    // String(now.getHours())= Converts the number returned by getHours() into a string so we can manipulate it with string methods.
+    // .padStart(2,'0')=This ensures the string is at least 2 characters long, padding it with '0' on the left if needed. Example: "9".padStart(2,'0') → "09". "16".padStart(2,'0') → "16". 
+    // + ':' + =Concatenates a colon : between hours and minutes
+    // Finally, sets the text content of the DOM element el (here, the element with id "tb-time") to the formatted time string.
+     el.textContent = String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
+  }, 30000);
+}
+ 
+// ── INIT ──────────────────────────────────────────────────────────────────────
+// This part of the code is the initialization section, often labeled INIT. It runs when the page loads and is responsible for setting up the dashboard with all its content and functionality. Each function here is called in sequence to build different parts of the UI and make it interactive.
+
+// Generates the sidebar navigation links, user info, and logout button.
+buildSidebar();
+
+// Fills the top bar with the current time, date, greeting, and logged-in user info.
+buildTopbar();
+
+// Creates the quick statistic cards (like total complaints, pending, critical) and animates the numbers.
+buildQuickStats();
+
+// Builds the module cards that link to different sections of the dashboard (e.g., Complaints, Water, Garbage).
+buildModules();
+
+// Populates the live activity feed with recent events or updates.
+buildActivity();
+
+// Lists today’s priority tasks for the user to act on.
+buildTasks();
+
+// Displays water usage status per zone, including progress bars with colored alerts.
+buildWater();
+
+// Animates the hero section’s key metrics (like total complaints, resolution rate).
+animateHero();
+
+// Starts the live clock in the top bar, updating it every 30 seconds.
+startClock();
+</script>
+</body>
+</html>

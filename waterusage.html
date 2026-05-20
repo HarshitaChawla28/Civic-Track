@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Water Usage - CivicTrack</title>
+  <link rel="stylesheet" href="css/waterusage.css">
+</head>
+<body>
+
+  <!-- PENALTY MODAL -->
+  <div class="modal-overlay" id="penalty-modal">
+    <div class="modal">
+      <div id="modal-pay-content">
+        <h3>⚠️ Penalty Payment</h3>
+        <p>You have an outstanding water usage penalty. Pay now to avoid further charges.</p>
+        <div class="modal-amount">₹200</div>
+        <div class="modal-due">Due by: 31 March 2025 · Reference: WP-2025-0312</div>
+        <button class="modal-btn" onclick="processModalPayment()">Pay ₹200 Now</button>
+        <button class="modal-cancel" onclick="closeModal()">Cancel</button>
+      </div>
+      <div class="modal-success" id="modal-success">
+        <span class="big">✅</span>
+        <h4>Payment Successful!</h4>
+        <p style="color:#7A8BAA;font-size:13px;">Your penalty of ₹200 has been cleared.</p>
+        <p class="pay-ref" style="margin-top:8px;">Ref: TXN-2025-<span id="modal-ref">0000</span></p>
+        <button class="modal-cancel" onclick="closeModal()" style="margin-top:16px;">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST -->
+  <div class="toast" id="toast">✅ Payment confirmed! Receipt sent to your email.</div>
+
+  <!-- HEADER -->
+  <header>
+    <nav>
+      <a href="#" class="logo"><span class="logo-dot"></span>CivicTrack</a>
+      <div class="nav-right">
+        <a href="userprofile.html" class="nav-back">← Back</a>
+      </div>
+    </nav>
+  </header>
+
+  <!-- ALERT BANNER (shown when penalty due) -->
+  <div class="alert-banner" id="alert-banner">
+    <div class="alert-left">
+      <div class="alert-dot"></div>
+      <span><strong>Penalty Due: ₹200</strong> — February 2025 usage exceeded limit by 60L. Due by 31 Mar 2025.</span>
+    </div>
+    <button class="pay-now-btn" onclick="openModal()">Pay Now →</button>
+  </div>
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="hero-inner">
+      <div class="hero-left">
+        <h1>💧 Water Usage Monitor</h1>
+        <p id="hero-sub">Ward 12, Mumbai · <span id="hero-name">User</span> · Household Account #WD-12-4821</p>
+      </div>
+      <div class="hero-right">
+        <select class="month-select" id="month-select" onchange="loadMonth(this.value)">
+          <option value="march">March 2025</option>
+          <option value="feb">February 2025</option>
+          <option value="jan">January 2025</option>
+          <option value="dec">December 2024</option>
+        </select>
+        <button class="download-btn" onclick="downloadReport()">⬇️ Download Report</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+
+    <!-- TOP STATS -->
+    <div class="top-stats">
+      <div class="stat-card">
+        <span class="sc-icon">💧</span>
+        <div class="sc-label">Used This Month</div>
+        <div class="sc-num" id="sc-used" style="color:#00C8FF;">—</div>
+        <div class="sc-sub" id="sc-used-sub">—</div>
+      </div>
+      <div class="stat-card">
+        <span class="sc-icon">📏</span>
+        <div class="sc-label">Monthly Limit</div>
+        <div class="sc-num" style="color:#E8EDF5;">200L</div>
+        <div class="sc-sub">Per household</div>
+      </div>
+      <div class="stat-card">
+        <span class="sc-icon">🔋</span>
+        <div class="sc-label">Remaining</div>
+        <div class="sc-num" id="sc-rem" style="color:#16C784;">—</div>
+        <div class="sc-sub" id="sc-rem-sub">—</div>
+      </div>
+      <div class="stat-card">
+        <span class="sc-icon">📅</span>
+        <div class="sc-label">Daily Average</div>
+        <div class="sc-num" id="sc-avg" style="color:#2B7FFF;">—</div>
+        <div class="sc-sub" id="sc-avg-sub">—</div>
+      </div>
+      <div class="stat-card">
+        <span class="sc-icon">⚠️</span>
+        <div class="sc-label">Penalty Status</div>
+        <div class="sc-num" id="sc-penalty" style="font-size:16px;">—</div>
+        <div class="sc-sub" id="sc-pen-sub">—</div>
+      </div>
+    </div>
+
+    <!-- BILLING + PAYMENT -->
+    <div class="section-title">💳 Billing & Payment</div>
+    <div class="billing-grid">
+
+      <!-- BILL BREAKDOWN -->
+      <div class="bill-card">
+        <div class="card-header" style="padding:0 0 14px;border-bottom:1px solid #1E2D4A;margin-bottom:14px;">
+          <h3>🧾 Current Bill — <span id="bill-month-label">March 2025</span></h3>
+        </div>
+        <div class="bill-row"><span>Base Water Charge</span><span id="bill-base">—</span></div>
+        <div class="bill-row"><span>Usage (per litre above 100L)</span><span id="bill-usage-charge">—</span></div>
+        <div class="bill-row"><span>GST (18%)</span><span id="bill-gst">—</span></div>
+        <div class="bill-row"><span>Penalty (if applicable)</span><span id="bill-penalty-line">—</span></div>
+        <div class="bill-row"><span>Previous Balance</span><span id="bill-prev">₹0</span></div>
+        <div style="border-top:1px solid #1E2D4A;margin-top:8px;">
+          <div class="bill-total"><span>Total Due</span><span id="bill-total">—</span></div>
+          <div class="bill-due" id="bill-due-date">Due by: 15 Apr 2025</div>
+        </div>
+
+        <div style="margin-top:16px;display:flex;gap:10px;">
+          <button style="flex:1;background:#111C32;border:1px solid #1E2D4A;color:#B0BFDA;padding:9px;border-radius:8px;font-family:'Poppins',sans-serif;font-size:12px;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.borderColor='#2B7FFF'" onmouseout="this.style.borderColor='#1E2D4A'" onclick="downloadReport()">📄 Download Bill</button>
+          <button style="flex:1;background:#111C32;border:1px solid #1E2D4A;color:#B0BFDA;padding:9px;border-radius:8px;font-family:'Poppins',sans-serif;font-size:12px;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.borderColor='#2B7FFF'" onmouseout="this.style.borderColor='#1E2D4A'">📧 Email Bill</button>
+        </div>
+      </div>
+
+      <!-- PAYMENT FORM -->
+      <div class="payment-card">
+        <div class="payment-title">💳 Make a Payment</div>
+        <div class="payment-sub">Secure payment powered by CivicTrack · All transactions encrypted</div>
+
+        <div id="payment-form-section">
+          <div class="payment-methods">
+            <div class="pay-method selected" id="pm-upi" onclick="selectMethod('upi')">
+              <span class="pm-icon">📱</span>
+              <div class="pm-label">UPI</div>
+            </div>
+            <div class="pay-method" id="pm-card" onclick="selectMethod('card')">
+              <span class="pm-icon">💳</span>
+              <div class="pm-label">Card</div>
+            </div>
+            <div class="pay-method" id="pm-netbanking" onclick="selectMethod('netbanking')">
+              <span class="pm-icon">🏦</span>
+              <div class="pm-label">Net Banking</div>
+            </div>
+            <div class="pay-method" id="pm-cash" onclick="selectMethod('cash')">
+              <span class="pm-icon">💵</span>
+              <div class="pm-label">Cash Counter</div>
+            </div>
+          </div>
+
+          <!-- UPI inputs -->
+          <div id="upi-fields">
+            <div style="margin-bottom:12px;">
+              <div style="font-size:11px;color:#7A8BAA;margin-bottom:5px;text-transform:uppercase;letter-spacing:0.08em;">UPI ID</div>
+              <input type="text" id="upi-id" placeholder="yourname@upi" style="width:100%;background:#0A0F1E;border:1px solid #1E2D4A;border-radius:8px;padding:10px 14px;color:#E8EDF5;font-family:'Poppins',sans-serif;font-size:14px;outline:none;transition:border-color 0.2s;" onfocus="this.style.borderColor='#2B7FFF'" onblur="this.style.borderColor='#1E2D4A'"/>
+            </div>
+          </div>
+          <!-- Card inputs -->
+          <div id="card-fields" style="display:none;">
+            <div style="margin-bottom:10px;">
+              <div style="font-size:11px;color:#7A8BAA;margin-bottom:5px;text-transform:uppercase;letter-spacing:0.08em;">Card Number</div>
+              <input type="text" placeholder="1234 5678 9012 3456" maxlength="19" oninput="formatCard(this)" style="width:100%;background:#0A0F1E;border:1px solid #1E2D4A;border-radius:8px;padding:10px 14px;color:#E8EDF5;font-family:'Poppins',sans-serif;font-size:14px;outline:none;" onfocus="this.style.borderColor='#2B7FFF'" onblur="this.style.borderColor='#1E2D4A'"/>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+              <div>
+                <div style="font-size:11px;color:#7A8BAA;margin-bottom:5px;text-transform:uppercase;letter-spacing:0.08em;">Expiry</div>
+                <input type="text" placeholder="MM/YY" maxlength="5" style="width:100%;background:#0A0F1E;border:1px solid #1E2D4A;border-radius:8px;padding:10px 14px;color:#E8EDF5;font-family:'Poppins',sans-serif;font-size:14px;outline:none;" onfocus="this.style.borderColor='#2B7FFF'" onblur="this.style.borderColor='#1E2D4A'"/>
+              </div>
+              <div>
+                <div style="font-size:11px;color:#7A8BAA;margin-bottom:5px;text-transform:uppercase;letter-spacing:0.08em;">CVV</div>
+                <input type="password" placeholder="•••" maxlength="3" style="width:100%;background:#0A0F1E;border:1px solid #1E2D4A;border-radius:8px;padding:10px 14px;color:#E8EDF5;font-family:'Poppins',sans-serif;font-size:14px;outline:none;" onfocus="this.style.borderColor='#2B7FFF'" onblur="this.style.borderColor='#1E2D4A'"/>
+              </div>
+            </div>
+          </div>
+          <!-- Net banking -->
+          <div id="netbanking-fields" style="display:none;">
+            <select style="width:100%;background:#0A0F1E;border:1px solid #1E2D4A;border-radius:8px;padding:10px 14px;color:#E8EDF5;font-family:'Poppins',sans-serif;font-size:14px;outline:none;cursor:pointer;margin-bottom:10px;">
+              <option value="">Select Bank</option>
+              <option>SBI</option><option>HDFC Bank</option><option>ICICI Bank</option>
+              <option>Axis Bank</option><option>Bank of Baroda</option><option>Punjab National Bank</option>
+            </select>
+          </div>
+          <!-- Cash counter -->
+          <div id="cash-fields" style="display:none;">
+            <div style="background:#0D1C3A;border:1px solid #1E2D4A;border-radius:8px;padding:14px;font-size:13px;color:#7A8BAA;margin-bottom:10px;">
+              📍 Visit: <strong style="color:#E8EDF5;">Municipal Water Office, Ward 12, Ground Floor</strong><br>
+              🕐 Hours: Mon–Sat, 9 AM – 5 PM<br>
+              📋 Bring your bill reference: <strong style="color:#2B7FFF;">WD-12-4821</strong>
+            </div>
+          </div>
+
+          <div class="pay-amount-row" style="margin-top:10px;">
+            <label>Amount (₹)</label>
+            <input type="number" class="pay-amount-input" id="pay-amount" value="0" min="1"/>
+          </div>
+
+          <button class="pay-btn" id="pay-btn" onclick="processPayment()">Pay Now →</button>
+          <div class="pay-secure">🔒 256-bit SSL encrypted · Powered by CivicPay</div>
+        </div>
+
+        <div class="pay-success" id="pay-success">
+          <span class="pay-success-icon">🎉</span>
+          <h4>Payment Successful!</h4>
+          <p style="color:#7A8BAA;font-size:13px;margin-top:4px;">Your water bill has been paid.</p>
+          <div class="pay-ref">Transaction ID: TXN-2025-<span id="pay-ref-num">0000</span></div>
+          <button onclick="resetPayment()" style="margin-top:16px;background:transparent;border:1px solid #1E2D4A;color:#B0BFDA;padding:9px 20px;border-radius:8px;font-family:'Poppins',sans-serif;font-size:13px;cursor:pointer;">Make Another Payment</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- PAYMENT HISTORY -->
+    <div class="section-title">🕐 Payment History</div>
+    <div class="card" style="margin-bottom:20px;">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Date</th><th>Description</th><th>Amount</th><th>Method</th><th>Status</th><th>Reference</th></tr></thead>
+          <tbody id="payment-history-table"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- DAILY BREAKDOWN -->
+    <div class="section-title">📅 Daily Breakdown</div>
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-header">
+        <h3>Daily Usage Log</h3>
+        <span id="daily-month-label">March 2025</span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Date</th><th>Day</th><th>Usage (L)</th><th>Visual</th><th>vs. Daily Avg</th><th>Status</th></tr></thead>
+          <tbody id="daily-table"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- PENALTY SLABS -->
+    <div class="section-title">⚠️ Penalty Structure</div>
+    <div class="penalty-info">
+      <div class="card">
+        <div class="card-header"><h3>Penalty Slabs</h3></div>
+        <div style="padding:8px;">
+          <table class="penalty-slab-table">
+            <thead><tr><th>Usage Range</th><th>Rate</th><th>Penalty</th></tr></thead>
+            <tbody id="slab-table"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><h3>📋 Penalty FAQs</h3></div>
+        <div style="padding:16px 22px;">
+          <div style="margin-bottom:14px;">
+            <div style="font-size:13px;font-weight:500;color:#E8EDF5;margin-bottom:4px;">When is the penalty issued?</div>
+            <div style="font-size:12px;color:#7A8BAA;">Penalties are calculated at the end of each calendar month and appear on your next bill.</div>
+          </div>
+          <div style="margin-bottom:14px;">
+            <div style="font-size:13px;font-weight:500;color:#E8EDF5;margin-bottom:4px;">Can I appeal a penalty?</div>
+            <div style="font-size:12px;color:#7A8BAA;">Yes. File an appeal within 15 days of issue by visiting the municipal office or calling 1800-XXX-XXXX.</div>
+          </div>
+          <div style="margin-bottom:14px;">
+            <div style="font-size:13px;font-weight:500;color:#E8EDF5;margin-bottom:4px;">What if I don't pay on time?</div>
+            <div style="font-size:12px;color:#7A8BAA;">A late fee of ₹50 is added after the due date. Continued non-payment may result in supply suspension.</div>
+          </div>
+          <div>
+            <div style="font-size:13px;font-weight:500;color:#E8EDF5;margin-bottom:4px;">How is usage measured?</div>
+            <div style="font-size:12px;color:#7A8BAA;">Usage is recorded by your household water meter. Readings are taken on the 1st of each month.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CONSERVATION TIPS -->
+    <div class="section-title">🌿 Conservation Tips</div>
+    <div class="tips-grid">
+      <div class="tip-card">
+        <span class="tip-icon">🚿</span>
+        <h4>Shorter Showers</h4>
+        <p>Reducing shower time by 2 minutes saves up to 20L per day. Switch to a low-flow shower head.</p>
+        <span class="tip-saving">Saves ~600L/month</span>
+      </div>
+      <div class="tip-card">
+        <span class="tip-icon">🪣</span>
+        <h4>Reuse Washing Water</h4>
+        <p>Collect washing machine rinse water and reuse it for mopping or flushing.</p>
+        <span class="tip-saving">Saves ~100L/month</span>
+      </div>
+      <div class="tip-card">
+        <span class="tip-icon">🔧</span>
+        <h4>Fix Leaking Taps</h4>
+        <p>A dripping tap wastes 20L per day. Report pipe leaks on CivicTrack immediately.</p>
+        <span class="tip-saving">Saves ~600L/month</span>
+      </div>
+      <div class="tip-card">
+        <span class="tip-icon">🌱</span>
+        <h4>Water Plants Wisely</h4>
+        <p>Water plants in the morning or evening to reduce evaporation. Use a watering can, not a hose.</p>
+        <span class="tip-saving">Saves ~80L/month</span>
+      </div>
+      <div class="tip-card">
+        <span class="tip-icon">🍽️</span>
+        <h4>Wash Dishes Smartly</h4>
+        <p>Fill the sink rather than running tap water. Only run dishwashers with full loads.</p>
+        <span class="tip-saving">Saves ~150L/month</span>
+      </div>
+      <div class="tip-card">
+        <span class="tip-icon">🚽</span>
+        <h4>Check Your Flush</h4>
+        <p>Place a bottle in your cistern to reduce flush volume. Use dual-flush if available.</p>
+        <span class="tip-saving">Saves ~200L/month</span>
+      </div>
+    </div>
+
+    <!-- NEIGHBOURHOOD LEADERBOARD -->
+    <div class="section-title">🏆 Ward 12 Conservation Leaderboard</div>
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-header"><h3>Top Water Savers — March 2025</h3><span>Your rank: #4</span></div>
+      <div style="padding:6px 22px 16px;">
+        <div class="lb-item">
+          <div class="lb-rank gold">1</div>
+          <div class="lb-avatar">RS</div>
+          <div class="lb-info"><h5>Rahul S.</h5><p>Ward 12 · Used 62L</p></div>
+          <div class="lb-saved">138L saved</div>
+        </div>
+        <div class="lb-item">
+          <div class="lb-rank silver">2</div>
+          <div class="lb-avatar">PM</div>
+          <div class="lb-info"><h5>Priya M.</h5><p>Ward 12 · Used 74L</p></div>
+          <div class="lb-saved">126L saved</div>
+        </div>
+        <div class="lb-item">
+          <div class="lb-rank bronze">3</div>
+          <div class="lb-avatar">AK</div>
+          <div class="lb-info"><h5>Amit K.</h5><p>Ward 12 · Used 78L</p></div>
+          <div class="lb-saved">122L saved</div>
+        </div>
+        <div class="lb-item lb-you">
+          <div class="lb-rank" style="color:#2B7FFF;">4</div>
+          <div class="lb-avatar" style="background:#112240;border-color:#2B7FFF;">You</div>
+          <div class="lb-info"><h5 id="lb-your-name">You</h5><p>Ward 12 · <span id="lb-your-usage">80L</span> used</p></div>
+          <div class="lb-saved" id="lb-your-saved" style="color:#2B7FFF;">120L saved</div>
+        </div>
+        <div class="lb-item">
+          <div class="lb-rank" style="color:#7A8BAA;">5</div>
+          <div class="lb-avatar">SJ</div>
+          <div class="lb-info"><h5>Suresh J.</h5><p>Ward 12 · Used 95L</p></div>
+          <div class="lb-saved" style="color:#7A8BAA;">105L saved</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+
+    /* ── READ USER NAME ── */
+    var userName = sessionStorage.getItem('userName') || 'User';
+    document.getElementById('hero-name').textContent = userName;
+    document.getElementById('lb-your-name').textContent = userName.split(' ')[0] + ' (You)';
+
+    /* ── JSON DATA ── */
+    var monthData = {
+      march: {
+        label: "March 2025", shortLabel: "Mar",
+        used: 80, limit: 200,
+        prevUsed: 260, prev2Used: 155,
+        days: [
+          {d:"1 Mar",day:"Sat",u:4},{d:"2 Mar",day:"Sun",u:3},{d:"3 Mar",day:"Mon",u:5},
+          {d:"4 Mar",day:"Tue",u:2},{d:"5 Mar",day:"Wed",u:6},{d:"6 Mar",day:"Thu",u:4},
+          {d:"7 Mar",day:"Fri",u:3},{d:"8 Mar",day:"Sat",u:5},{d:"9 Mar",day:"Sun",u:4},
+          {d:"10 Mar",day:"Mon",u:6},{d:"11 Mar",day:"Tue",u:3},{d:"12 Mar",day:"Wed",u:4},
+          {d:"13 Mar",day:"Thu",u:5},{d:"14 Mar",day:"Fri",u:3},{d:"15 Mar",day:"Sat",u:4},
+          {d:"16 Mar",day:"Sun",u:5},{d:"17 Mar",day:"Mon",u:3},{d:"18 Mar",day:"Tue",u:4}
+        ],
+        hasPenalty: false, penaltyAmt: 0, billBase: 50, prevBalance: 0
+      },
+      feb: {
+        label: "February 2025", shortLabel: "Feb",
+        used: 260, limit: 200,
+        prevUsed: 155, prev2Used: 180,
+        days: [
+          {d:"1 Feb",day:"Sat",u:8},{d:"2 Feb",day:"Sun",u:9},{d:"3 Feb",day:"Mon",u:7},
+          {d:"4 Feb",day:"Tue",u:10},{d:"5 Feb",day:"Wed",u:9},{d:"6 Feb",day:"Thu",u:8},
+          {d:"7 Feb",day:"Fri",u:11},{d:"8 Feb",day:"Sat",u:9},{d:"9 Feb",day:"Sun",u:10},
+          {d:"10 Feb",day:"Mon",u:8},{d:"11 Feb",day:"Tue",u:9},{d:"12 Feb",day:"Wed",u:10},
+          {d:"13 Feb",day:"Thu",u:9},{d:"14 Feb",day:"Fri",u:11},{d:"15 Feb",day:"Sat",u:9},
+          {d:"16 Feb",day:"Sun",u:10},{d:"17 Feb",day:"Mon",u:8},{d:"18 Feb",day:"Tue",u:9},
+          {d:"19 Feb",day:"Wed",u:10},{d:"20 Feb",day:"Thu",u:9},{d:"21 Feb",day:"Fri",u:8},
+          {d:"22 Feb",day:"Sat",u:9},{d:"23 Feb",day:"Sun",u:10},{d:"24 Feb",day:"Mon",u:8},
+          {d:"25 Feb",day:"Tue",u:9},{d:"26 Feb",day:"Wed",u:8},{d:"27 Feb",day:"Thu",u:9},{d:"28 Feb",day:"Fri",u:2}
+        ],
+        hasPenalty: true, penaltyAmt: 200, billBase: 50, prevBalance: 0
+      },
+      jan: {
+        label: "January 2025", shortLabel: "Jan",
+        used: 155, limit: 200,
+        prevUsed: 180, prev2Used: 195,
+        days: [
+          {d:"1 Jan",day:"Wed",u:5},{d:"2 Jan",day:"Thu",u:4},{d:"3 Jan",day:"Fri",u:6},
+          {d:"4 Jan",day:"Sat",u:5},{d:"5 Jan",day:"Sun",u:4},{d:"6 Jan",day:"Mon",u:5},
+          {d:"7 Jan",day:"Tue",u:6},{d:"8 Jan",day:"Wed",u:5},{d:"9 Jan",day:"Thu",u:4},
+          {d:"10 Jan",day:"Fri",u:5},{d:"11 Jan",day:"Sat",u:6},{d:"12 Jan",day:"Sun",u:5},
+          {d:"13 Jan",day:"Mon",u:4},{d:"14 Jan",day:"Tue",u:5},{d:"15 Jan",day:"Wed",u:6},
+          {d:"16 Jan",day:"Thu",u:5},{d:"17 Jan",day:"Fri",u:4},{d:"18 Jan",day:"Sat",u:5},
+          {d:"19 Jan",day:"Sun",u:6},{d:"20 Jan",day:"Mon",u:5},{d:"21 Jan",day:"Tue",u:4},
+          {d:"22 Jan",day:"Wed",u:5},{d:"23 Jan",day:"Thu",u:6},{d:"24 Jan",day:"Fri",u:5},
+          {d:"25 Jan",day:"Sat",u:4},{d:"26 Jan",day:"Sun",u:5},{d:"27 Jan",day:"Mon",u:6},
+          {d:"28 Jan",day:"Tue",u:5},{d:"29 Jan",day:"Wed",u:4},{d:"30 Jan",day:"Thu",u:5},{d:"31 Jan",day:"Fri",u:5}
+        ],
+        hasPenalty: false, penaltyAmt: 0, billBase: 50, prevBalance: 0
+      },
+      dec: {
+        label: "December 2024", shortLabel: "Dec",
+        used: 180, limit: 200,
+        prevUsed: 195, prev2Used: 210,
+        days: [
+          {d:"1 Dec",day:"Sun",u:6},{d:"2 Dec",day:"Mon",u:5},{d:"3 Dec",day:"Tue",u:6},
+          {d:"4 Dec",day:"Wed",u:7},{d:"5 Dec",day:"Thu",u:5},{d:"6 Dec",day:"Fri",u:6},
+          {d:"7 Dec",day:"Sat",u:7},{d:"8 Dec",day:"Sun",u:6},{d:"9 Dec",day:"Mon",u:5},
+          {d:"10 Dec",day:"Tue",u:6},{d:"11 Dec",day:"Wed",u:7},{d:"12 Dec",day:"Thu",u:5},
+          {d:"13 Dec",day:"Fri",u:6},{d:"14 Dec",day:"Sat",u:7},{d:"15 Dec",day:"Sun",u:6},
+          {d:"16 Dec",day:"Mon",u:5},{d:"17 Dec",day:"Tue",u:6},{d:"18 Dec",day:"Wed",u:7},
+          {d:"19 Dec",day:"Thu",u:5},{d:"20 Dec",day:"Fri",u:6},{d:"21 Dec",day:"Sat",u:7},
+          {d:"22 Dec",day:"Sun",u:6},{d:"23 Dec",day:"Mon",u:5},{d:"24 Dec",day:"Tue",u:6},
+          {d:"25 Dec",day:"Wed",u:5},{d:"26 Dec",day:"Thu",u:6},{d:"27 Dec",day:"Fri",u:7},
+          {d:"28 Dec",day:"Sat",u:6},{d:"29 Dec",day:"Sun",u:5},{d:"30 Dec",day:"Mon",u:6},{d:"31 Dec",day:"Tue",u:5}
+        ],
+        hasPenalty: false, penaltyAmt: 0, billBase: 50, prevBalance: 0
+      }
+    };
+
+    var paymentHistory = [
+      {date:"15 Feb 2025", desc:"Water Bill — January 2025", amount:"₹72", method:"UPI", status:"Paid", ref:"TXN-2025-0281"},
+      {date:"20 Mar 2025", desc:"Penalty — February 2025 (260L)", amount:"₹200", method:"Net Banking", status:"Due", ref:"WP-2025-0312"},
+      {date:"14 Jan 2025", desc:"Water Bill — December 2024", amount:"₹85", method:"Card", status:"Paid", ref:"TXN-2025-0119"},
+      {date:"15 Dec 2024", desc:"Water Bill — November 2024", amount:"₹68", method:"UPI", status:"Paid", ref:"TXN-2024-1201"}
+    ];
+
+    var penaltySlabs = [
+      {range:"0 – 200L",rate:"Base rate",penalty:"₹0",isYou:false},
+      {range:"201 – 300L",rate:"₹0.50/L extra",penalty:"₹0–50",isYou:false},
+      {range:"301 – 400L",rate:"₹2/L extra",penalty:"₹200",isYou:false},
+      {range:"401 – 500L",rate:"₹4/L extra",penalty:"₹400",isYou:false},
+      {range:"Above 500L",rate:"₹7/L extra",penalty:"₹700+",isYou:false}
+    ];
+
+    /* ── PAYMENT METHOD SELECTION ── */
+    var selectedMethod = 'upi';
+    function selectMethod(m) {
+      selectedMethod = m;
+      var methods = ['upi','card','netbanking','cash'];
+      for (var i = 0; i < methods.length; i++) {
+        document.getElementById('pm-' + methods[i]).classList.remove('selected');
+        document.getElementById(methods[i] + '-fields').style.display = 'none';
+      }
+      document.getElementById('pm-' + m).classList.add('selected');
+      document.getElementById(m + '-fields').style.display = 'block';
+    }
+
+    /* ── LOAD MONTH ── */
+    function loadMonth(key) {
+      var d = monthData[key];
+      var { label, used, limit, days, hasPenalty, penaltyAmt, billBase, prevBalance, prevUsed, prev2Used } = d;
+
+      var remaining = Math.max(limit - used, 0);
+      var pct = Math.min(Math.round((used / limit) * 100), 100);
+      var avg = Math.round(used / days.length * 10) / 10;
+      var overLimit = used > limit;
+
+      /* Stats */
+      document.getElementById('sc-used').textContent    = used + 'L';
+      document.getElementById('sc-used-sub').textContent = pct + '% of limit';
+      document.getElementById('sc-rem').textContent     = overLimit ? '0L' : remaining + 'L';
+      document.getElementById('sc-rem-sub').textContent  = overLimit ? 'Over by ' + (used - limit) + 'L' : 'Remaining';
+      document.getElementById('sc-avg').textContent     = avg + 'L';
+      document.getElementById('sc-avg-sub').textContent  = 'Per day';
+      document.getElementById('daily-month-label').textContent = label;
+
+      var penEl = document.getElementById('sc-penalty');
+      var penSubEl = document.getElementById('sc-pen-sub');
+      if (hasPenalty) {
+        penEl.textContent = '₹' + penaltyAmt;
+        penEl.style.color = '#EF4444';
+        penSubEl.textContent = 'Penalty due';
+      } else if (used > 200 && used <= 300) {
+        penEl.textContent = '⚠ Warning';
+        penEl.style.color = '#F59E0B';
+        penSubEl.textContent = 'Approaching limit';
+      } else {
+        penEl.textContent = '✓ Clear';
+        penEl.style.color = '#16C784';
+        penSubEl.textContent = 'No penalty';
+      }
+
+      /* Billing */
+      var usageCharge = Math.max(used - 100, 0) * 0.5;
+      var gst = Math.round((billBase + usageCharge) * 0.18);
+      var total = billBase + usageCharge + gst + penaltyAmt + prevBalance;
+      document.getElementById('bill-month-label').textContent = label;
+      document.getElementById('bill-base').textContent         = '₹' + billBase;
+      document.getElementById('bill-usage-charge').textContent = '₹' + usageCharge.toFixed(0);
+      document.getElementById('bill-gst').textContent          = '₹' + gst;
+      document.getElementById('bill-penalty-line').textContent  = penaltyAmt > 0 ? '₹' + penaltyAmt : '—';
+      document.getElementById('bill-total').textContent         = '₹' + total.toFixed(0);
+      document.getElementById('pay-amount').value               = total.toFixed(0);
+
+      /* Daily table */
+      var avg2 = used / days.length;
+      var tbody = document.getElementById('daily-table');
+      var html  = '';
+      for (var i = 0; i < days.length; i++) {
+        var day = days[i];
+        var bw  = Math.min(Math.round((day.u / 15) * 100), 100);
+        var bc  = day.u > 8 ? '#EF4444' : day.u > 5 ? '#F59E0B' : '#2B7FFF';
+        var vs  = day.u > avg2 ? '<span style="color:#EF4444;">↑ High</span>' : day.u < avg2 ? '<span style="color:#16C784;">↓ Low</span>' : '<span style="color:#7A8BAA;">— Avg</span>';
+        var st  = day.u > 8 ? '<span style="color:#EF4444;font-size:11px;">High</span>' : day.u > 5 ? '<span style="color:#F59E0B;font-size:11px;">Moderate</span>' : '<span style="color:#16C784;font-size:11px;">Normal</span>';
+        html +=
+          '<tr><td>' + day.d + '</td><td style="color:#7A8BAA;">' + day.day + '</td>' +
+          '<td><strong>' + day.u + 'L</strong></td>' +
+          '<td><div class="usage-bar-sm"><div class="usage-bar-sm-fill" style="width:' + bw + '%;height:6px;background:' + bc + ';border-radius:100px;"></div></div></td>' +
+          '<td>' + vs + '</td><td>' + st + '</td></tr>';
+      }
+      tbody.innerHTML = html;
+
+      /* Payment history */
+      var phHtml = '';
+      for (var j = 0; j < paymentHistory.length; j++) {
+        var ph = paymentHistory[j];
+        var stClass = ph.status === 'Paid' ? 'pill-paid' : ph.status === 'Due' ? 'pill-due' : 'pill-pending';
+        phHtml +=
+          '<tr><td style="color:#7A8BAA;">' + ph.date + '</td>' +
+          '<td>' + ph.desc + '</td>' +
+          '<td style="font-weight:600;">' + ph.amount + '</td>' +
+          '<td style="color:#7A8BAA;">' + ph.method + '</td>' +
+          '<td><span class="pill ' + stClass + '">' + ph.status + '</span></td>' +
+          '<td style="color:#2B7FFF;font-size:12px;">' + ph.ref + '</td></tr>';
+      }
+      document.getElementById('payment-history-table').innerHTML = phHtml;
+
+      /* Penalty slabs — mark current slab */
+      var slabHtml = '';
+      for (var k = 0; k < penaltySlabs.length; k++) {
+        var sl = penaltySlabs[k];
+        var isCurrent = (used <= 200 && k === 0) || (used > 200 && used <= 300 && k === 1) ||
+                        (used > 300 && used <= 400 && k === 2) || (used > 400 && used <= 500 && k === 3) || (used > 500 && k === 4);
+        slabHtml +=
+          '<tr class="' + (isCurrent ? 'slab-highlight' : '') + '">' +
+          '<td class="' + (isCurrent ? 'slab-you' : '') + '">' + sl.range + (isCurrent ? ' ← You' : '') + '</td>' +
+          '<td style="color:#7A8BAA;">' + sl.rate + '</td>' +
+          '<td style="font-weight:600;' + (isCurrent && penaltyAmt > 0 ? 'color:#EF4444;' : '') + '">' + sl.penalty + '</td></tr>';
+      }
+      document.getElementById('slab-table').innerHTML = slabHtml;
+
+      /* Leaderboard update */
+      document.getElementById('lb-your-usage').textContent = used + 'L';
+      document.getElementById('lb-your-saved').textContent = Math.max(limit - used, 0) + 'L saved';
+    }
+
+    /* ── PAYMENT PROCESSING ── */
+    function processPayment() {
+      var amt = document.getElementById('pay-amount').value;
+      if (!amt || amt <= 0) { alert('Please enter a valid amount.'); return; }
+
+      if (selectedMethod === 'cash') {
+        alert('For cash payments, please visit the Municipal Water Office, Ward 12.\nBring reference: WD-12-4821');
+        return;
+      }
+
+      var btn = document.getElementById('pay-btn');
+      btn.disabled = true;
+      btn.textContent = 'Processing...';
+
+      setTimeout(function() {
+        var ref = Math.floor(Math.random() * 90000 + 10000);
+        document.getElementById('pay-ref-num').textContent = ref;
+        document.getElementById('payment-form-section').style.display = 'none';
+        document.getElementById('pay-success').style.display = 'block';
+
+        paymentHistory.unshift({
+          date: new Date().toLocaleDateString('en-IN', {day:'2-digit',month:'short',year:'numeric'}),
+          desc: 'Water Bill Payment',
+          amount: '₹' + amt,
+          method: selectedMethod.toUpperCase(),
+          status: 'Paid',
+          ref: 'TXN-2025-' + ref
+        });
+
+        showToast();
+        document.getElementById('alert-banner').classList.add('hidden');
+
+      }, 1800);
+    }
+
+    /* ── MODAL PAYMENT ── */
+    function openModal() {
+      document.getElementById('penalty-modal').classList.add('open');
+    }
+
+    function closeModal() {
+      document.getElementById('penalty-modal').classList.remove('open');
+      document.getElementById('modal-pay-content').style.display = 'block';
+      document.getElementById('modal-success').style.display = 'none';
+    }
+
+    function processModalPayment() {
+      document.getElementById('modal-pay-content').style.display = 'none';
+      var ref = Math.floor(Math.random() * 90000 + 10000);
+      document.getElementById('modal-ref').textContent = ref;
+      document.getElementById('modal-success').style.display = 'block';
+      document.getElementById('alert-banner').classList.add('hidden');
+      showToast();
+    }
+
+    /* ── TOAST ── */
+    function showToast() {
+      var t = document.getElementById('toast');
+      t.classList.add('show');
+      setTimeout(function() { t.classList.remove('show'); }, 4000);
+    }
+
+    /* ── RESET PAYMENT FORM ── */
+    function resetPayment() {
+      document.getElementById('payment-form-section').style.display = 'block';
+      document.getElementById('pay-success').style.display = 'none';
+      document.getElementById('pay-btn').disabled = false;
+      document.getElementById('pay-btn').textContent = 'Pay Now →';
+    }
+
+    /* ── CARD FORMATTING ── */
+    function formatCard(input) {
+      var v = input.value.replace(/\D/g, '').substring(0, 16);
+      input.value = v.replace(/(.{4})/g, '$1 ').trim();
+    }
+
+    /* ── DOWNLOAD REPORT ── */
+    function downloadReport() {
+      alert('Report download feature — in a live app this would generate a PDF bill.\nReference: WD-12-4821');
+    }
+
+    /* ── INIT ── */
+    loadMonth('march');
+
+
+
+// This page is driven by **Vanilla JavaScript**, where all the dynamic behavior comes from data objects and functions that update the UI. First, the script reads the user’s name from `sessionStorage` and inserts it into the hero section and leaderboard, which is why the page feels personalized instead of static. After that, the core of the page is a big data object called `monthData`, which stores all water usage information month-wise—like total usage, daily usage, penalty, bill details, etc. This acts like a **fake backend**, meaning instead of calling an API, your page is using predefined JSON data.
+
+// The most important function is `loadMonth()`, which runs when the page loads or when the user changes the month from the dropdown. This function takes the selected month’s data and calculates values like total usage, remaining water, percentage used, daily average, and whether a penalty exists. Then it updates different parts of the UI using `document.getElementById().textContent`, which is why all numbers (like “80L used”, “₹200 penalty”, etc.) change dynamically when you switch months.
+
+// Inside the same function, billing is also calculated dynamically. It computes extra usage charges, GST, total bill, and penalty using simple formulas, then displays them in the bill section. The daily usage table is also generated here using a loop, where each day’s data is turned into a table row with a visual bar, status (high/low), and comparison with average. So instead of writing rows manually in HTML, the JS builds them automatically.
+
+// Then, the payment history and penalty slab tables are also generated using loops. The code checks conditions (like whether a payment is “Paid” or “Due”, or which slab the user falls into) and applies different styles accordingly. This is why some rows are highlighted or colored differently.
+
+// Next comes the **payment system logic**. When a user selects a payment method, the `selectMethod()` function shows the correct input fields (UPI, card, etc.) and hides the others. When the user clicks “Pay Now”, the `processPayment()` function runs—it validates the amount, simulates processing using `setTimeout`, generates a fake transaction ID, updates the UI to show success, adds the payment to history, and shows a toast message. No real payment API is used—it’s just simulated behavior.
+
+// There is also a **modal-based payment system** for penalties. Functions like `openModal()`, `closeModal()`, and `processModalPayment()` control the popup. When payment is done, it switches the modal content to a success message and hides the penalty alert banner.
+
+// The `showToast()` function is a small UI feature that briefly shows a confirmation message using CSS classes and `setTimeout`, making the interface feel interactive. The `formatCard()` function improves UX by automatically formatting card numbers while typing.
+
+// Finally, when the page loads, `loadMonth('march')` is called, which fills the entire page with March data by default. That’s why everything appears already populated when the user opens the page.
+
+// ---
+
+// **“This page uses Vanilla JS to take data from objects, calculate values like usage and billing, and dynamically update the UI, while simulating payments and interactions without any real backend.”**
+
+
+  </script>
+</body>
+</html>

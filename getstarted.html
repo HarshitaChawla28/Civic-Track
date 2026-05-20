@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Get Started - CivicTrack</title>
+  <link rel="stylesheet" href="css/getstarted.css">
+  <script>
+
+    // These three lines are used to decide where the user should go after logging in. First, window.location.search looks at the URL to see if there's any extra information after a ? (called query parameters). new URLSearchParams(...) makes it easy to read those parameters. Then, params.get('next') checks if there's a next page specified in the URL—for example, login.html?next=report.html would mean the user wants to go to report.html after login. If no next page is given, it defaults to 'userprofile.html'. Finally, sessionStorage.setItem('redirectAfterLogin', nextPage) saves this page in the browser's session storage so that after the user logs in, the site knows which page to take them to.
+    var params   = new URLSearchParams(window.location.search);
+    var nextPage = params.get('next') || 'userprofile.html';
+    sessionStorage.setItem('redirectAfterLogin', nextPage);
+  </script>
+</head>
+<body>
+
+  <div class="page-wrap">
+
+    <!-- ── LEFT PANEL ── -->
+    <div class="left-panel">
+
+      <a href="index.html" class="back-link">← Back</a>
+
+      <div class="left-content">
+        <div class="logo">
+          <span class="logo-dot"></span>
+          CivicTrack
+        </div>
+
+        <div class="portal-badge">Official Civic Portal</div>
+
+        <h1>Smart Civic<br>Management<br><span class="accent">for Every Citizen</span></h1>
+
+        <p class="tagline">Report problems. Track progress. Build a better city — together.</p>
+
+        <div class="divider"></div>
+
+        <div class="stat-grid">
+          <div class="stat-box">
+            <div class="stat-num" id="s1">0</div>
+            <div class="stat-label">Issues Resolved</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-num" id="s2">0</div>
+            <div class="stat-label">Active Citizens</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-num" id="s3">0</div>
+            <div class="stat-label">Avg. Response</div>
+          </div>
+        </div>
+
+        <div class="trust-row">
+          <div class="trust-item">
+            <div class="trust-icon">&#9679;</div>
+            <span>Govt. Verified Platform</span>
+          </div>
+          <div class="trust-item">
+            <div class="trust-icon">&#9679;</div>
+            <span>256-bit Encrypted</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ── RIGHT PANEL ── -->
+    <div class="right-panel">
+      <div class="right-content">
+
+        <div class="right-header">
+          <p class="step-label">Step 1 of 2</p>
+          <h2>Select Access Type</h2>
+          <p class="right-sub">Choose the type of account you want to access.</p>
+        </div>
+
+        <!-- Cards -->
+        <div class="role-list">
+
+          <div class="role-card" id="rc-user" onclick="pick('user')">
+            <div class="role-left">
+              <div class="role-icon user-icon">U</div>
+              <div class="role-info">
+                <div class="role-name">Citizen / User</div>
+                <div class="role-desc">Report issues, track complaints, receive updates</div>
+              </div>
+            </div>
+            <div class="role-right">
+              <span class="role-tag">Recommended</span>
+              <span class="chevron">›</span>
+            </div>
+          </div>
+
+          <div class="role-card" id="rc-admin" onclick="pick('admin')">
+            <div class="role-left">
+              <div class="role-icon admin-icon">A</div>
+              <div class="role-info">
+                <div class="role-name">Municipal Admin</div>
+                <div class="role-desc">Manage reports, assign teams, resolve issues</div>
+              </div>
+            </div>
+            <div class="role-right">
+              <span class="role-tag restricted-tag">Restricted</span>
+              <span class="chevron">›</span>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Action zone -->
+        <div class="action-zone" id="action-zone">
+
+          <!-- User actions -->
+          <div id="act-user" class="act-group" style="display:none">
+            <p class="act-title">How would you like to continue as a <strong>Citizen</strong>?</p>
+            <a href="signup.html" class="btn-main">Create New Account</a>
+            <a href="login.html" class="btn-outline">Sign In to Existing Account</a>
+          </div>
+
+          <!-- Admin actions -->
+          <div id="act-admin" class="act-group" style="display:none">
+            <div class="alert-box">
+              <strong>Restricted Access</strong>
+              <p>Admin login requires credentials issued by your municipal authority. Contact your administrator for access.</p>
+            </div>
+            <a href="adminlogin.html" class="btn-outline">Admin Sign In</a>
+          </div>
+
+        </div>
+
+        <p class="signin-note">Already have an account? <a href="login.html">Log in here →</a></p>
+
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    /* ── 1. Card selection ── */
+    // It handles what happens when a user clicks a role (User / Admin), highlights the selected card.
+
+    var current = null;
+
+    function pick(role) {
+      // Remove active from all cards
+      // id of cards:
+      var cards = ['rc-user', 'rc-admin'];
+      for (var i = 0; i < cards.length; i++) {
+        document.getElementById(cards[i]).classList.remove('active');
+        // classList is a property that every HTML element has, it lets users add classes, remove classes or check classes
+        // element.classList.remove('active')= Remove the class named active from this element
+      }
+
+      // The active class is not written at the beginning. Instead, it is added and removed dynamically using JavaScript when we interact with the page. When a user clicks on a card (User or Admin), the pick(role) function runs. First, it removes the active class from all cards to clear any previous selection. Then, it adds the active class only to the card that was clicked using classList.add('active'). This makes that card appear highlighted. So active class is created and used during runtime to visually show which option is selected.
+
+      // Activate selected
+      document.getElementById('rc-' + role).classList.add('active');
+
+      // Hide all action groups
+      // This part of the code is used to hide all the action sections (User, Admin) before showing the one that matches the selected role. A for loop runs through the IDs one by one. Inside the loop, document.getElementById(acts[j]) selects each action section, and .style.display = 'none' hides it from the screen. So, this loop ensures that all action sections are hidden first, so that later the program can display only the correct one (based on what is clicked).
+
+      var acts = ['act-user', 'act-admin'];
+      for (var j = 0; j < acts.length; j++) {
+        document.getElementById(acts[j]).style.display = 'none';
+      }
+
+      // After hiding everything, the if...else condition checks which role was clicked. If the role is "user", it shows the user section by setting display = 'flex'. Otherwise it shows the admin section. So basically, only the selected role's section becomes visible.
+
+      if (role === 'user') {
+        document.getElementById('act-user').style.display = 'flex';
+      } else {
+        document.getElementById('act-admin').style.display = 'flex';
+      }
+
+      // Animate action zone in
+      // This part of the code is used to make the action section appear smoothly on the screen. Initially, the .action-zone is hidden because its CSS sets opacity: 0 and  transform: translateY(8px) means the element is slightly downward by 8 pixels, a bit lower than its normal position. When the user selects a role, the JavaScript line zone.classList.add('show') adds a new class called show to that element. This activates the CSS rule .action-zone.show, which changes the opacity to 1 (making it visible) and moves it back to its normal position: translateY(0). Because a transition is applied in the CSS, these changes happen gradually, creating a smooth fade-in and slide-up animation instead of appearing instantly.
+      var zone = document.getElementById('action-zone');
+      zone.classList.add('show');
+    }
+
+    /* ── 2. Stat counters ── */
+    function count(id, target, suffix) {
+      var el = document.getElementById(id);
+      var n  = 0;
+      var step = Math.ceil(target / 50);
+      var t = setInterval(function() {
+        n += step;
+        if (n >= target) {
+          n = target;
+          clearInterval(t);
+          }
+      el.innerHTML = n + suffix;
+      }, 25);
+    }
+
+    setTimeout(function() {
+      count('s1', 1200, '+');
+      count('s2', 8400, '+');
+      count('s3', 48,   'h');
+    }, 400);
+  </script>
+
+</body>
+</html>

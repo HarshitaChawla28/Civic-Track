@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Water Usage - CivicTrack</title>
+  <link rel="stylesheet" href="css/newwater.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+
+  <!-- TOAST -->
+  <div class="toast" id="toast">✅ Water meter linked successfully!</div>
+
+  <!-- HEADER -->
+  <header>
+    <nav>
+      <a href="newuser.html" class="logo"><span class="logo-dot"></span>CivicTrack</a>
+      <a href="newuser.html" class="nav-back">← Back</a>
+    </nav>
+  </header>
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="hero-inner">
+      <div class="hero-left">
+        <h1>💧 Water Usage Monitor</h1>
+        <p>Welcome, <strong id="hero-name" style="color:#fff;">User</strong> — set up your water meter to start tracking.</p>
+      </div>
+      <div class="setup-badge">⚙️ Setup Required</div>
+    </div>
+  </div>
+
+  <div class="container">
+
+    <!-- SETUP PROGRESS BAR -->
+    <div class="setup-progress">
+      <div class="sp-top">
+        <h3>Water Meter Setup</h3>
+        <span id="step-label">Step 1 of 3</span>
+      </div>
+      <div class="sp-steps">
+        <div class="sp-step">
+          <div class="sp-dot active" id="dot-1">1</div>
+          <div class="sp-label active" id="lbl-1">Register Meter</div>
+        </div>
+        <div class="sp-line" id="line-1"></div>
+        <div class="sp-step">
+          <div class="sp-dot pending" id="dot-2">2</div>
+          <div class="sp-label pending" id="lbl-2">Verify & Connect</div>
+        </div>
+        <div class="sp-line" id="line-2"></div>
+        <div class="sp-step">
+          <div class="sp-dot pending" id="dot-3">3</div>
+          <div class="sp-label pending" id="lbl-3">Live Monitoring</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 1: REGISTER METER -->
+    <div id="step-1-section">
+      <div class="section-title">🔧 Step 1 — Register Your Water Meter</div>
+
+      <div class="meter-reg-card">
+        <div class="mrc-header">
+          <div class="mrc-icon">🔢</div>
+          <div>
+            <h3>Link Your Household Water Meter</h3>
+            <p>Enter the meter details found on the physical device installed at your property.</p>
+          </div>
+        </div>
+        <div class="mrc-body">
+
+          <!-- METER DEVICE VISUAL -->
+          <div class="meter-visual-wrap">
+            <div class="meter-device">
+              <div class="meter-device-img">
+                <div class="scan-line"></div>
+                <div class="meter-screen">00000</div>
+                <div class="meter-label">Water Meter</div>
+              </div>
+              <h4>Your Physical Meter</h4>
+              <p>Find the white/grey box near your main water inlet — usually outside the door or in the utility area.</p>
+              <div>
+                <div class="meter-id-label">Meter ID is printed here →</div>
+                <div class="meter-id-val">WM-XXXX-XXXX</div>
+              </div>
+            </div>
+
+            <div style="display:flex;flex-direction:column;gap:12px;justify-content:center;">
+              <div style="background:#0A0F1E;border:1px solid #1E2D4A;border-radius:10px;padding:14px 16px;font-size:12px;">
+                <div style="font-weight:600;color:#fff;margin-bottom:6px;">📍 Where to find your Meter ID</div>
+                <ul style="list-style:none;display:flex;flex-direction:column;gap:6px;color:#7A8BAA;">
+                  <li>✓ Printed on the front face of the meter</li>
+                  <li>✓ On the installation certificate from MCGM</li>
+                  <li>✓ On your previous water bills (if any)</li>
+                  <li>✓ Format: WM-XXXX-XXXX (10 characters)</li>
+                </ul>
+              </div>
+              <div style="background:rgba(43,127,255,0.06);border:1px solid rgba(43,127,255,0.2);border-radius:10px;padding:14px 16px;font-size:12px;">
+                <div style="font-weight:600;color:#2B7FFF;margin-bottom:6px;">ℹ️ What happens after linking?</div>
+                <ul style="list-style:none;display:flex;flex-direction:column;gap:5px;color:#7A8BAA;">
+                  <li>→ Real-time usage tracking begins</li>
+                  <li>→ Daily readings sent to your account</li>
+                  <li>→ Alerts before you exceed limits</li>
+                  <li>→ Bills generated automatically each month</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <!-- REGISTRATION FORM -->
+          <div class="reg-form" id="reg-form">
+
+            <div class="form-group">
+              <label>Meter ID *</label>
+              <input type="text" id="meter-id" placeholder="e.g. WM-4821-7392" oninput="formatMeterId(this)" maxlength="12"/>
+              <span class="input-hint">Found on the physical meter device</span>
+            </div>
+
+            <div class="form-group">
+              <label>Meter Serial Number *</label>
+              <input type="text" id="meter-serial" placeholder="e.g. MCG-2024-48219"/>
+              <span class="input-hint">From installation certificate</span>
+            </div>
+
+            <div class="form-group">
+              <label>Current Meter Reading *</label>
+              <input type="number" id="meter-reading" placeholder="e.g. 1247" min="0"/>
+              <span class="input-hint">The number shown on your meter display (in Litres)</span>
+            </div>
+
+            <div class="form-group">
+              <label>Meter Installation Year</label>
+              <select id="meter-year">
+                <option value="">Select year</option>
+                <option>2024</option><option>2023</option><option>2022</option>
+                <option>2021</option><option>2020</option><option>Before 2020</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>Property Type *</label>
+              <select id="prop-type">
+                <option value="">Select type</option>
+                <option>Residential — Apartment</option>
+                <option>Residential — Independent House</option>
+                <option>Commercial</option>
+                <option>Mixed Use</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>Number of Occupants *</label>
+              <input type="number" id="occupants" placeholder="e.g. 4" min="1" max="30"/>
+              <span class="input-hint">Used to calculate your fair usage limit</span>
+            </div>
+
+            <div class="form-group full">
+              <label>Property Address *</label>
+              <input type="text" id="prop-address" placeholder="Flat 402, Sunrise Apartments, SV Road, Ward 12, Mumbai"/>
+            </div>
+
+            <div class="form-group full">
+              <label>Upload Meter Photo <span style="color:#4A5568;font-weight:300;">(optional but recommended)</span></label>
+              <label for="meter-photo" style="display:flex;align-items:center;justify-content:center;gap:10px;background:#0A0F1E;border:2px dashed #1E2D4A;border-radius:8px;padding:20px;cursor:pointer;color:#7A8BAA;font-size:13px;transition:border-color 0.2s;" id="photo-drop" onmouseover="this.style.borderColor='#2B7FFF'" onmouseout="this.style.borderColor='#1E2D4A'">
+                <span id="photo-label">📷 Click to upload meter photo</span>
+                <input type="file" id="meter-photo" accept="image/*" style="display:none" onchange="handleMeterPhoto(this)"/>
+              </label>
+            </div>
+
+          </div>
+
+          <div class="form-actions">
+            <button class="btn-primary" onclick="submitRegistration()">Register & Connect Meter →</button>
+            <button class="btn-secondary" onclick="useDemoMeter()">Use Demo Meter</button>
+            <span class="form-note">🔒 Your meter data is encrypted and secure</span>
+          </div>
+
+          <!-- Error message -->
+          <div id="reg-error" style="display:none;margin-top:12px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.25);border-radius:8px;padding:10px 14px;font-size:13px;color:#FF8080;"></div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 2: VERIFICATION (hidden initially) -->
+    <div id="step-2-section" style="display:none;">
+      <div class="section-title">🔄 Step 2 — Verifying & Connecting</div>
+      <div class="meter-reg-card">
+        <div class="mrc-body">
+          <div class="verify-state" id="verify-state" style="display:block;">
+            <div class="verify-spinner"></div>
+            <h4>Connecting to your meter...</h4>
+            <p>This takes about 10–15 seconds. Please wait.</p>
+            <div class="verify-steps">
+              <div class="vs-item active" id="vs-1">
+                <div class="vs-dot active"></div>
+                <span>Validating Meter ID...</span>
+              </div>
+              <div class="vs-item pending" id="vs-2">
+                <div class="vs-dot pending"></div>
+                <span>Checking MCGM database...</span>
+              </div>
+              <div class="vs-item pending" id="vs-3">
+                <div class="vs-dot pending"></div>
+                <span>Linking to your account...</span>
+              </div>
+              <div class="vs-item pending" id="vs-4">
+                <div class="vs-dot pending"></div>
+                <span>Fetching initial reading...</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 3: CONNECTED DASHBOARD (hidden initially) -->
+    <div id="step-3-section" style="display:none;">
+
+      <!-- CONNECTED BANNER -->
+      <div class="connected-banner">
+        <div class="cb-left">
+          <div class="cb-icon">✅</div>
+          <div class="cb-info">
+            <h3>Meter Connected Successfully!</h3>
+            <p>Your water meter is now linked and sending live readings to CivicTrack.</p>
+          </div>
+        </div>
+        <div class="cb-right">
+          <span>Meter ID</span>
+          <strong id="connected-meter-id">WM-4821-7392</strong>
+          <span style="margin-top:4px;">Connected</span>
+          <strong style="color:#16C784;">● Live</strong>
+        </div>
+      </div>
+
+      <!-- DIGITAL METER DISPLAY -->
+      <div class="section-title">📟 Live Meter Reading</div>
+      <div class="digital-meter">
+        <div>
+          <div class="dm-label">Current Reading</div>
+          <div>
+            <span class="dm-reading" id="dm-reading">001247</span>
+            <span class="dm-unit"> L</span>
+          </div>
+          <div style="font-size:11px;color:#16C784;margin-top:4px;">● Updated just now</div>
+        </div>
+        <div class="dm-right">
+          <span>Meter ID</span>
+          <strong id="dm-meter-id">WM-4821-7392</strong>
+          <span style="margin-top:6px;">This Month Used</span>
+          <strong id="dm-this-month" style="color:#00C8FF;">0 L</strong>
+          <span style="margin-top:6px;">Meter Status</span>
+          <strong style="color:#16C784;">Active ✓</strong>
+        </div>
+      </div>
+
+      <!-- LIVE READING CARDS -->
+      <div class="live-reading-card">
+        <div class="lr-top">
+          <h3>Today's Usage Snapshot</h3>
+          <div class="live-dot-wrap">
+            <div class="live-dot-anim"></div>
+            Live
+          </div>
+        </div>
+        <div class="reading-grid">
+          <div class="reading-box">
+            <span class="rb-icon">🌅</span>
+            <div class="rb-label">Used Today</div>
+            <div class="rb-val" id="rb-today" style="color:#00C8FF;">0 L</div>
+            <div class="rb-sub">Since midnight</div>
+          </div>
+          <div class="reading-box">
+            <span class="rb-icon">📅</span>
+            <div class="rb-label">This Month</div>
+            <div class="rb-val" id="rb-month" style="color:#2B7FFF;">0 L</div>
+            <div class="rb-sub" id="rb-month-sub">of 200L limit</div>
+          </div>
+          <div class="reading-box">
+            <span class="rb-icon">🎯</span>
+            <div class="rb-label">Remaining</div>
+            <div class="rb-val" id="rb-remaining" style="color:#16C784;">200 L</div>
+            <div class="rb-sub">This month</div>
+          </div>
+          <div class="reading-box">
+            <span class="rb-icon">⚡</span>
+            <div class="rb-label">Flow Rate</div>
+            <div class="rb-val" id="rb-flow" style="color:#F59E0B;">0.0 L/h</div>
+            <div class="rb-sub" id="rb-flow-sub">Current</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TODAY'S HOURLY CHART -->
+      <div class="section-title">📈 Today's Usage — Hourly</div>
+      <div class="today-chart-card">
+        <div class="chart-wrap">
+          <canvas id="hourly-chart"></canvas>
+        </div>
+        <div style="display:flex;gap:16px;margin-top:12px;font-size:11px;color:#7A8BAA;">
+          <span style="display:flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;background:#2B7FFF;border-radius:50%;display:inline-block;"></span> Hourly usage (L)</span>
+          <span style="display:flex;align-items:center;gap:5px;"><span style="width:10px;height:2px;background:#EF4444;display:inline-block;"></span> Hourly limit (8L)</span>
+        </div>
+      </div>
+
+      <!-- BILL ESTIMATE -->
+      <div class="section-title">🧾 Projected Bill — This Month</div>
+      <div class="estimate-card">
+        <div style="font-size:13px;color:#7A8BAA;margin-bottom:14px;">Based on your current usage and daily average — projected to end of month.</div>
+        <div class="estimate-row"><span>Base Water Charge</span><span>₹50</span></div>
+        <div class="estimate-row"><span>Usage Charge (above 100L)</span><span id="est-usage-charge">₹0</span></div>
+        <div class="estimate-row"><span>GST (18%)</span><span id="est-gst">₹9</span></div>
+        <div class="estimate-row"><span>Penalty (projected)</span><span style="color:#16C784;" id="est-penalty">₹0 — Safe ✓</span></div>
+        <div class="estimate-row"><span>Projected End-of-Month Usage</span><span id="est-eom" style="color:#2B7FFF;">—</span></div>
+        <div class="estimate-total">
+          <span>Estimated Total</span>
+          <span id="est-total" style="color:#2B7FFF;">₹59</span>
+        </div>
+      </div>
+
+      <!-- ALERTS SETUP -->
+      <div class="section-title">🔔 Usage Alerts</div>
+      <div style="background:#111C32;border:1px solid #1E2D4A;border-radius:14px;padding:22px;margin-bottom:20px;">
+        <p style="font-size:13px;color:#7A8BAA;margin-bottom:16px;">Set up alerts so you never accidentally exceed your limit.</p>
+        <div style="display:flex;flex-direction:column;gap:12px;">
+          <label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:12px 14px;background:#0A0F1E;border:1px solid #1E2D4A;border-radius:8px;">
+            <div>
+              <div style="font-size:13px;font-weight:500;color:#E8EDF5;">Alert at 150L usage</div>
+              <div style="font-size:11px;color:#7A8BAA;">75% of monthly limit — early warning</div>
+            </div>
+            <input type="checkbox" id="alert-150" checked style="width:16px;height:16px;accent-color:#2B7FFF;cursor:pointer;"/>
+          </label>
+          <label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:12px 14px;background:#0A0F1E;border:1px solid #1E2D4A;border-radius:8px;">
+            <div>
+              <div style="font-size:13px;font-weight:500;color:#E8EDF5;">Alert at 180L usage</div>
+              <div style="font-size:11px;color:#7A8BAA;">90% of monthly limit — urgent warning</div>
+            </div>
+            <input type="checkbox" id="alert-180" checked style="width:16px;height:16px;accent-color:#2B7FFF;cursor:pointer;"/>
+          </label>
+          <label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:12px 14px;background:#0A0F1E;border:1px solid rgba(245,158,11,0.2);">
+            <div>
+              <div style="font-size:13px;font-weight:500;color:#E8EDF5;">Alert if unusual spike detected</div>
+              <div style="font-size:11px;color:#7A8BAA;">If usage exceeds 20L in one hour — possible leak</div>
+            </div>
+            <input type="checkbox" id="alert-spike" checked style="width:16px;height:16px;accent-color:#2B7FFF;cursor:pointer;"/>
+          </label>
+        </div>
+        <button onclick="saveAlerts()" style="margin-top:14px;background:#2B7FFF;color:#fff;border:none;border-radius:8px;padding:10px 22px;font-family:'Poppins',sans-serif;font-size:13px;font-weight:500;cursor:pointer;">Save Alert Preferences</button>
+      </div>
+
+      <!-- TIPS FOR NEW USER -->
+      <div class="section-title">💡 Tips to Stay Within Your Limit</div>
+      <div class="tips-grid">
+        <div class="tip-card">
+          <span class="tip-icon">🚿</span>
+          <h4>Time your showers</h4>
+          <p>Each minute in the shower uses about 10L. A 5-minute shower = 50L. Set a timer.</p>
+          <span class="tip-save">Saves ~300L/month</span>
+        </div>
+        <div class="tip-card">
+          <span class="tip-icon">🔧</span>
+          <h4>Check for leaks first</h4>
+          <p>If your meter reading is high with no obvious use, you may have a hidden pipe leak. Report on CivicTrack.</p>
+          <span class="tip-save">Prevents penalty</span>
+        </div>
+        <div class="tip-card">
+          <span class="tip-icon">📊</span>
+          <h4>Check usage daily</h4>
+          <p>Coming back here daily keeps you aware. Most overages happen gradually without anyone noticing.</p>
+          <span class="tip-save">Stay penalty-free</span>
+        </div>
+      </div>
+
+      <!-- GO TO FULL DASHBOARD -->
+      <div style="background:linear-gradient(135deg,#0D1C3A,#111C32);border:1px solid #1E2D4A;border-radius:14px;padding:28px;text-align:center;margin-bottom:20px;">
+        <div style="font-size:32px;margin-bottom:12px;">🎉</div>
+        <h3 style="font-size:18px;font-weight:700;color:#fff;margin-bottom:8px;">Your meter is all set!</h3>
+        <p style="font-size:14px;color:#7A8BAA;margin-bottom:20px;">As usage accumulates, your full dashboard will unlock with charts, bill history, and more.</p>
+        <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
+          <a href="newuser.html" style="background:transparent;color:#B0BFDA;border:1px solid #1E2D4A;padding:12px 24px;border-radius:8px;font-size:14px;transition:all 0.2s;" onmouseover="this.style.borderColor='#2B7FFF'" onmouseout="this.style.borderColor='#1E2D4A'">← Back to Home</a>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <script>
+
+    /* ── Read user name ── */
+    var userName = sessionStorage.getItem('userName') || 'User';
+    document.getElementById('hero-name').textContent = userName;
+
+    /* ── Format Meter ID as WM-XXXX-XXXX ── */
+    function formatMeterId(input) {
+      var v = input.value.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+      if (v.length > 2 && v.indexOf('WM') === 0) {
+        var digits = v.slice(2);
+        if (digits.length <= 4) v = 'WM-' + digits;
+        else v = 'WM-' + digits.slice(0, 4) + '-' + digits.slice(4, 8);
+      }
+      input.value = v;
+    }
+
+    /* ── Handle meter photo ── */
+    function handleMeterPhoto(input) {
+      if (input.files && input.files[0]) {
+        document.getElementById('photo-label').textContent = '📎 ' + input.files[0].name;
+      }
+    }
+
+    /* ── Use demo meter (auto-fills form) ── */
+    function useDemoMeter() {
+      document.getElementById('meter-id').value      = 'WM-4821-7392';
+      document.getElementById('meter-serial').value  = 'MCG-2024-48219';
+      document.getElementById('meter-reading').value = '1247';
+      document.getElementById('meter-year').value    = '2024';
+      document.getElementById('prop-type').value     = 'Residential — Apartment';
+      document.getElementById('occupants').value     = '4';
+      document.getElementById('prop-address').value  = 'Flat 402, Sunrise Apartments, SV Road, Ward 12, Mumbai';
+
+      // Highlight fields
+      var fields = ['meter-id','meter-serial','meter-reading','prop-address'];
+      for (var i = 0; i < fields.length; i++) {
+        document.getElementById(fields[i]).classList.add('input-valid');
+      }
+    }
+
+    /* ── SUBMIT REGISTRATION ── */
+    function submitRegistration() {
+      var meterId   = document.getElementById('meter-id').value.trim();
+      var serial    = document.getElementById('meter-serial').value.trim();
+      var reading   = document.getElementById('meter-reading').value.trim();
+      var propType  = document.getElementById('prop-type').value;
+      var occupants = document.getElementById('occupants').value.trim();
+      var address   = document.getElementById('prop-address').value.trim();
+      var errEl     = document.getElementById('reg-error');
+
+      // Validation using if/else
+      if (!meterId) {
+        showError('Please enter your Meter ID.'); return;
+      } else if (meterId.length < 10) {
+        showError('Meter ID should be in format WM-XXXX-XXXX.'); return;
+      } else if (!serial) {
+        showError('Please enter the meter serial number.'); return;
+      } else if (!reading) {
+        showError('Please enter the current meter reading.'); return;
+      } else if (!propType) {
+        showError('Please select your property type.'); return;
+      } else if (!occupants || occupants < 1) {
+        showError('Please enter number of occupants.'); return;
+      } else if (!address) {
+        showError('Please enter your property address.'); return;
+      }
+
+      errEl.style.display = 'none';
+
+      // Save meter ID for connected state
+      sessionStorage.setItem('meterId', meterId);
+      sessionStorage.setItem('meterReading', reading);
+
+      // Move to step 2
+      goToStep2(meterId, reading);
+    }
+
+    function showError(msg) {
+      var el = document.getElementById('reg-error');
+      el.textContent = '❌ ' + msg;
+      el.style.display = 'block';
+    }
+
+    /* ── STEP 2: VERIFY ── */
+    function goToStep2(meterId, reading) {
+      // Update progress dots
+      document.getElementById('dot-1').className  = 'sp-dot done';
+      document.getElementById('dot-1').textContent = '✓';
+      document.getElementById('lbl-1').className  = 'sp-label done';
+      document.getElementById('line-1').className = 'sp-line done';
+      document.getElementById('dot-2').className  = 'sp-dot active';
+      document.getElementById('lbl-2').className  = 'sp-label active';
+      document.getElementById('step-label').textContent = 'Step 2 of 3';
+
+      // Show step 2
+      document.getElementById('step-1-section').style.display = 'none';
+      document.getElementById('step-2-section').style.display = 'block';
+
+      // Animate verification steps
+      var steps = ['vs-1','vs-2','vs-3','vs-4'];
+      var labels = ['Validating Meter ID...','Checking MCGM database...','Linking to your account...','Fetching initial reading...'];
+      var delays = [0, 1500, 3000, 4500];
+
+      for (var i = 0; i < steps.length; i++) {
+        (function(idx) {
+          setTimeout(function() {
+            // Mark previous done
+            if (idx > 0) {
+              var prev = document.getElementById(steps[idx - 1]);
+              prev.className = 'vs-item done';
+              prev.querySelector('.vs-dot').className = 'vs-dot done';
+            }
+            // Mark current active
+            var curr = document.getElementById(steps[idx]);
+            curr.className = 'vs-item active';
+            curr.querySelector('.vs-dot').className = 'vs-dot active';
+          }, delays[idx]);
+        })(i);
+      }
+
+      // After all steps, go to step 3
+      setTimeout(function() {
+        document.getElementById('vs-4').className = 'vs-item done';
+        document.getElementById('vs-4').querySelector('.vs-dot').className = 'vs-dot done';
+        setTimeout(function() { goToStep3(meterId, reading); }, 600);
+      }, 6000);
+    }
+
+    /* ── STEP 3: CONNECTED ── */
+    function goToStep3(meterId, reading) {
+      // Update progress
+      document.getElementById('dot-2').className  = 'sp-dot done';
+      document.getElementById('dot-2').textContent = '✓';
+      document.getElementById('lbl-2').className  = 'sp-label done';
+      document.getElementById('line-2').className = 'sp-line done';
+      document.getElementById('dot-3').className  = 'sp-dot done';
+      document.getElementById('dot-3').textContent = '✓';
+      document.getElementById('lbl-3').className  = 'sp-label done';
+      document.getElementById('step-label').textContent = 'Setup Complete ✓';
+
+      document.getElementById('step-2-section').style.display = 'none';
+      document.getElementById('step-3-section').style.display = 'block';
+
+      // Fill in connected meter info
+      var cleanId = meterId || 'WM-4821-7392';
+      document.getElementById('connected-meter-id').textContent = cleanId;
+      document.getElementById('dm-meter-id').textContent = cleanId;
+      document.getElementById('dm-reading').textContent = String(parseInt(reading) || 1247).padStart(6, '0');
+
+      // Today's usage — starts at 0 for new user, simulate small reading
+      var todayUsage = Math.floor(Math.random() * 8) + 2;
+      document.getElementById('rb-today').textContent = todayUsage + ' L';
+      document.getElementById('rb-month').textContent = todayUsage + ' L';
+      document.getElementById('rb-remaining').textContent = (200 - todayUsage) + ' L';
+      document.getElementById('dm-this-month').textContent = todayUsage + ' L';
+
+      // Simulate flow rate (0 if not currently using)
+      var flowRate = (Math.random() * 2).toFixed(1);
+      document.getElementById('rb-flow').textContent = flowRate + ' L/h';
+      document.getElementById('rb-flow-sub').textContent = flowRate > 0 ? 'Water flowing' : 'No flow';
+
+      // Bill estimate
+      var projectedMonthly = Math.round((todayUsage / 1) * 30);
+      var usageCharge = Math.max(projectedMonthly - 100, 0) * 0.5;
+      var gst = Math.round((50 + usageCharge) * 0.18);
+      var total = 50 + usageCharge + gst;
+      document.getElementById('est-usage-charge').textContent = '₹' + usageCharge.toFixed(0);
+      document.getElementById('est-gst').textContent          = '₹' + gst;
+      document.getElementById('est-eom').textContent          = projectedMonthly + 'L (projected)';
+      document.getElementById('est-total').textContent        = '₹' + total.toFixed(0);
+
+      // Hourly chart
+      initHourlyChart(todayUsage);
+
+      // Show toast
+      showToast();
+
+      // Scroll to top
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    /* ── HOURLY CHART ── */
+    function initHourlyChart(todayTotal) {
+      var hours = [];
+      var vals  = [];
+      var now   = new Date().getHours();
+
+      // Generate realistic hourly usage for today
+      var usagePattern = [0,0,0,0,0,1,2,3,2,1,1,2,3,2,1,1,2,3,2,1,1,2,1,0];
+      var scale = todayTotal / 20;
+
+      for (var h = 0; h <= now; h++) {
+        hours.push(h + ':00');
+        vals.push(Math.round(usagePattern[h] * scale * 10) / 10);
+      }
+
+      var ctx = document.getElementById('hourly-chart').getContext('2d');
+      new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: hours,
+          datasets: [
+            {
+              label: 'Usage (L)',
+              data: vals,
+              backgroundColor: vals.map(function(v) { return v > 8 ? 'rgba(239,68,68,0.7)' : 'rgba(43,127,255,0.7)'; }),
+              borderRadius: 4
+            },
+            {
+              label: 'Hourly Limit',
+              data: hours.map(function() { return 8; }),
+              type: 'line',
+              borderColor: 'rgba(239,68,68,0.4)',
+              borderDash: [5,4],
+              pointRadius: 0,
+              fill: false,
+              borderWidth: 1.5
+            }
+          ]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { ticks: { color: '#7A8BAA', font: { size: 10 } }, grid: { color: '#1E2D4A' } },
+            y: { ticks: { color: '#7A8BAA' }, grid: { color: '#1E2D4A' }, beginAtZero: true }
+          }
+        }
+      });
+    }
+
+    /* ── SAVE ALERTS ── */
+    function saveAlerts() {
+      var a150   = document.getElementById('alert-150').checked;
+      var a180   = document.getElementById('alert-180').checked;
+      var aSpike = document.getElementById('alert-spike').checked;
+      sessionStorage.setItem('alert150', a150);
+      sessionStorage.setItem('alert180', a180);
+      sessionStorage.setItem('alertSpike', aSpike);
+      showToast('✅ Alert preferences saved!');
+    }
+
+    /* ── TOAST ── */
+    function showToast(msg) {
+      var t = document.getElementById('toast');
+      t.textContent = msg || '✅ Water meter linked successfully!';
+      t.classList.add('show');
+      setTimeout(function() { t.classList.remove('show'); }, 4000);
+    }
+
+  </script>
+</body>
+</html>

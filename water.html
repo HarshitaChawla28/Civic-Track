@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CivicTrack — Water Usage</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<link rel="stylesheet" href="css/water.css">
+</head>
+<body>
+
+<!-- TOPBAR -->
+<header class="topbar">
+  <div class="logo">
+    <div class="logo-icon">💧</div>
+    <span>Civic<em>Track</em></span>
+  </div>
+  <div class="tdiv"></div>
+  <div class="tbadge"><div class="pulse"></div>Water Usage Monitor</div>
+  <div class="tr-right">
+    <div class="tclock" id="liveClock">--:--:--</div>
+    <div class="ticon">🔔<div class="nbadge"></div></div>
+    <div class="ticon">⚙️</div>
+    <div class="tavatar">AU</div>
+  </div>
+</header>
+
+<div class="main">
+
+  <!-- HEADER -->
+  <div class="page-header fade-up">
+    <div class="ph-left">
+      <div class="sub">💧 Real-Time Monitoring · Ludhiana Municipal Corp</div>
+      <h1>Water Usage <span>&</span> Penalty Control</h1>
+      <p>200L daily limit per household · Zone-wise monitoring · Auto fine calculation · Penalty tracking</p>
+    </div>
+    <div class="ph-actions">
+      <button class="btn btn-outline" onclick="simulateTick()">⟳ Simulate Reading</button>
+      <button class="btn btn-warn" onclick="issueAllPending()">⚡ Issue All Pending Fines</button>
+      <button class="btn btn-water" onclick="openFineModal(null)">💸 Issue Fine</button>
+    </div>
+  </div>
+
+  <!-- KPI STRIP -->
+  <div class="kpi-strip fade-up" style="animation-delay:0.05s">
+    <div class="kpi kw">
+      <div class="kpi-label">Zones Monitored</div>
+      <div class="kpi-val kw-v">16</div>
+      <div class="kpi-sub">All active today</div>
+    </div>
+    <div class="kpi kr">
+      <div class="kpi-label">Limit Exceeded</div>
+      <div class="kpi-val kr-v" id="kExceeded">—</div>
+      <div class="kpi-sub"><span class="up" id="kExcTrend">—</span> zones over 200L</div>
+    </div>
+    <div class="kpi ko">
+      <div class="kpi-label">Near Limit (≥160L)</div>
+      <div class="kpi-val ko-v" id="kNear">—</div>
+      <div class="kpi-sub">Warning threshold</div>
+    </div>
+    <div class="kpi kg">
+      <div class="kpi-label">Fines Collected</div>
+      <div class="kpi-val kg-v" id="kCollected">₹0</div>
+      <div class="kpi-sub">This month</div>
+    </div>
+    <div class="kpi ky">
+      <div class="kpi-label">Pending Fines</div>
+      <div class="kpi-val ky-v" id="kPending">—</div>
+      <div class="kpi-sub"><span class="up" id="kPendAmt">—</span> outstanding</div>
+    </div>
+    <div class="kpi kc">
+      <div class="kpi-label">Avg City Usage</div>
+      <div class="kpi-val kc-v" id="kAvg">—L</div>
+      <div class="kpi-sub">Daily per zone</div>
+    </div>
+  </div>
+
+  <!-- ALERT BANNER -->
+  <div class="alert-banner fade-up" style="animation-delay:0.07s" id="alertBanner">
+    <div class="alert-icon">🚨</div>
+    <div class="alert-text">
+      <strong id="alertTitle">0 zones</strong> have exceeded the <strong>200L daily limit</strong> and require immediate attention.
+      Zones: <span id="alertZones" style="color:var(--warn)">—</span>
+    </div>
+    <div class="alert-count" id="alertCount">0</div>
+    <div class="alert-actions">
+      <button class="btn btn-red" style="font-size:11px;padding:7px 14px" onclick="issueAllPending()">Issue All Fines</button>
+    </div>
+  </div>
+
+  <!-- MAP + ALERTS -->
+  <div class="sec-label fade-up" style="animation-delay:0.09s">🗺️ Zone Consumption Map & Live Alerts</div>
+  <div class="two-col fade-up" style="animation-delay:0.1s">
+
+    <div class="map-card">
+      <div class="ccard-head" style="padding:14px 18px;border-bottom:1px solid var(--border);">
+        <div>
+          <h2>💧 Live Water Usage Map — Ludhiana</h2>
+          <p>Circle size = consumption volume · Click zone for details & actions</p>
+        </div>
+        <div class="ccard-head-right">
+          <button class="btn btn-outline" style="font-size:11px;padding:6px 11px" onclick="mapFitAll()">⊡ Fit All</button>
+        </div>
+      </div>
+      <div class="filter-bar">
+        <button class="chip active" onclick="setMapFilter(this,'all')">All Zones</button>
+        <button class="chip cr" onclick="setMapFilter(this,'exceeded')">🔴 Exceeded</button>
+        <button class="chip cw" onclick="setMapFilter(this,'near')">🟠 Near Limit</button>
+        <button class="chip cg" onclick="setMapFilter(this,'safe')">🟢 Safe</button>
+        <button class="chip" onclick="setMapFilter(this,'fined')">💸 Fined</button>
+      </div>
+      <div class="map-legend">
+        <div class="leg"><div class="leg-dot" style="background:#ef4444"></div>Exceeded (200L+)</div>
+        <div class="leg"><div class="leg-dot" style="background:#f59e0b"></div>Near Limit (160–200L)</div>
+        <div class="leg"><div class="leg-dot" style="background:#22c55e"></div>Safe (&lt;160L)</div>
+        <div class="leg"><div class="leg-dot" style="background:#a78bfa"></div>Fine Issued</div>
+        <div class="leg">● = Usage Volume</div>
+      </div>
+      <div id="waterMap"></div>
+    </div>
+
+    <!-- ALERTS + FINE TIERS -->
+    <div style="display:flex;flex-direction:column;gap:14px;">
+
+      <div class="ccard">
+        <div class="ccard-head">
+          <div style="flex:1"><h2>⚠️ Live Alerts</h2><p>Zones requiring immediate action</p></div>
+          <span id="alertBadge" style="font-family:'Space Mono',monospace;font-size:11px;background:rgba(239,68,68,0.12);color:var(--red);border:1px solid rgba(239,68,68,0.2);padding:2px 8px;border-radius:20px;">0 alerts</span>
+        </div>
+        <div id="alertsList" style="max-height:260px;overflow-y:auto;"></div>
+      </div>
+
+      <div class="ccard">
+        <div class="ccard-head">
+          <div><h2>💸 Fine Tier Structure</h2><p>Auto-calculated based on usage</p></div>
+        </div>
+        <div class="tier-row">
+          <div class="tier-range">0 — 200L</div>
+          <div class="tier-fine" style="color:var(--green)">₹0</div>
+          <div class="tier-note">Within limit — No fine</div>
+        </div>
+        <div class="tier-row">
+          <div class="tier-range">201 — 250L</div>
+          <div class="tier-fine" style="color:var(--yellow)">₹500</div>
+          <div class="tier-note">Warning + fine</div>
+        </div>
+        <div class="tier-row">
+          <div class="tier-range">251 — 300L</div>
+          <div class="tier-fine" style="color:var(--warn)">₹1,000</div>
+          <div class="tier-note">High usage fine</div>
+        </div>
+        <div class="tier-row">
+          <div class="tier-range">301 — 350L</div>
+          <div class="tier-fine" style="color:var(--red)">₹2,000</div>
+          <div class="tier-note">Severe violation</div>
+        </div>
+        <div class="tier-row">
+          <div class="tier-range">351L+</div>
+          <div class="tier-fine" style="color:var(--red)">₹3,000+</div>
+          <div class="tier-note">+ Official notice issued</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ZONE GAUGES -->
+  <div class="sec-label fade-up" style="animation-delay:0.12s">🔵 Zone-wise Usage Gauges</div>
+  <div class="ccard fade-up" style="animation-delay:0.13s">
+    <div class="ccard-head">
+      <div><h2>Real-Time Consumption Meters</h2><p>All 16 zones · 200L daily limit · Click to issue fine</p></div>
+      <div class="ccard-head-right">
+        <select id="gaugeSort" onchange="buildGauges()" style="background:var(--bg3);border:1px solid var(--border2);border-radius:7px;padding:5px 10px;color:var(--text);font-size:11px;font-family:'Syne',sans-serif;cursor:pointer;">
+          <option value="usage">Sort: Highest Usage</option>
+          <option value="name">Sort: Name</option>
+          <option value="pct">Sort: % of Limit</option>
+        </select>
+      </div>
+    </div>
+    <div class="gauges-grid" id="gaugesGrid"></div>
+  </div>
+
+  <!-- COMPLIANCE RANKINGS (full width now that chart is removed) -->
+  <div class="sec-label fade-up" style="animation-delay:0.14s">🏆 Compliance Rankings</div>
+  <div class="ccard fade-up" style="animation-delay:0.15s">
+    <div class="ccard-head">
+      <div><h2>🏆 Compliance Rankings</h2><p>Best to worst water usage</p></div>
+    </div>
+    <div id="complianceList" style="display:grid;grid-template-columns:repeat(2,1fr);"></div>
+  </div>
+
+  <!-- PENALTY LEDGER -->
+  <div class="sec-label fade-up" style="animation-delay:0.16s">📋 Penalty Ledger</div>
+  <div class="ccard fade-up" style="animation-delay:0.17s">
+    <div class="ccard-head">
+      <div><h2>All Issued Fines & Penalties</h2><p>Full record with payment tracking</p></div>
+      <div class="ccard-head-right">
+        <select id="ledgerFilter" onchange="buildLedger()" style="background:var(--bg3);border:1px solid var(--border2);border-radius:7px;padding:5px 10px;color:var(--text);font-size:11px;font-family:'Syne',sans-serif;cursor:pointer;">
+          <option value="all">All Status</option>
+          <option value="issued">Issued</option>
+          <option value="notified">Notified</option>
+          <option value="paid">Paid</option>
+          <option value="disputed">Disputed</option>
+        </select>
+        <span id="totalFineAmt" style="font-family:'Space Mono',monospace;font-size:11px;color:var(--red);background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.2);padding:3px 10px;border-radius:20px;">₹0 total</span>
+      </div>
+    </div>
+    <div style="overflow-x:auto;">
+      <table class="pen-table">
+        <thead>
+          <tr>
+            <th>Fine ID</th><th>Zone / Area</th><th>Usage (L)</th><th>Excess (L)</th>
+            <th>Fine Amount</th><th>Issued On</th><th>Due Date</th><th>Status</th><th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="penaltyTbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<!-- ISSUE FINE MODAL -->
+<div class="modal-ov" id="fineModal">
+  <div class="modal">
+    <div class="modal-head">
+      <span style="font-size:20px">💸</span>
+      <h3>Issue Water Usage Fine</h3>
+      <div class="modal-close" onclick="closeModal()">✕</div>
+    </div>
+    <div class="modal-body">
+      <div class="modal-info-grid" id="modalInfoGrid"></div>
+      <div class="fine-preview" id="finePreview">
+        <div class="fine-preview-amt" id="fineAmt">₹0</div>
+        <div class="fine-preview-info" id="fineInfo">Select a zone to calculate fine</div>
+      </div>
+      <div>
+        <label class="modal-sel-lbl">Zone</label>
+        <select class="modal-select" id="fineZoneSelect" onchange="updateFinePreview()"></select>
+      </div>
+      <div>
+        <label class="modal-sel-lbl">Fine Type</label>
+        <select class="modal-select" id="fineTypeSelect">
+          <option value="auto">⚡ Auto-Calculate (by tier)</option>
+          <option value="warning">⚠️ Warning Only (₹0)</option>
+          <option value="double">🔴 Double Penalty (repeat offender)</option>
+        </select>
+      </div>
+      <div>
+        <label class="modal-sel-lbl">Notice</label>
+        <select class="modal-select" id="fineNoticeSelect">
+          <option value="sms">📱 SMS Notification</option>
+          <option value="email">📧 Email Notice</option>
+          <option value="official">📄 Official Notice + Visit</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-red" onclick="confirmFine()">💸 Confirm & Issue Fine</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast-wrap" id="toastWrap"></div>
+
+<script>
+// ── DATA ──────────────────────────────────────────────────────
+// It defines the maximum allowed water usage per zone
+var LIMIT = 200;
+
+// Each object represents one geographic zone.
+// id: Unique identifier, Used internally (map, updates, tracking)
+// name:  Human-readable zone name, Used in UI (cards, alerts, tables)
+// lat, lng: Coordinates for the map, Used by Leaflet to place markers
+// usage: current water usage
+//fined: tells if fine is already issued
+// fineStatus: Tracks fine progress
+// Possible values:
+// null → no fine
+// "issued" → created
+// "notified" → user informed
+// "paid" → completed
+// "disputed" → challenged
+var zones = [
+  { id:"Z1",  name:"Sector 14 North", lat:30.9015, lng:75.8480, usage:248, fined:false, fineStatus:null },
+  { id:"Z2",  name:"Rajiv Nagar",     lat:30.9080, lng:75.8590, usage:174, fined:false, fineStatus:null },
+  { id:"Z3",  name:"Model Town",      lat:30.9145, lng:75.8510, usage:193, fined:false, fineStatus:null },
+  { id:"Z4",  name:"Prem Nagar",      lat:30.8960, lng:75.8430, usage:312, fined:true,  fineStatus:"notified" },
+  { id:"Z5",  name:"Civil Lines",     lat:30.8910, lng:75.8540, usage:145, fined:false, fineStatus:null },
+  { id:"Z6",  name:"BRS Nagar",       lat:30.8860, lng:75.8620, usage:361, fined:true,  fineStatus:"issued" },
+  { id:"Z7",  name:"Sarabha Nagar",   lat:30.9200, lng:75.8660, usage:119, fined:false, fineStatus:null },
+  { id:"Z8",  name:"Dugri",           lat:30.8800, lng:75.8540, usage:88,  fined:false, fineStatus:null },
+  { id:"Z9",  name:"Haibowal Kalan",  lat:30.9080, lng:75.8750, usage:221, fined:false, fineStatus:null },
+  { id:"Z10", name:"Gill Road",       lat:30.9160, lng:75.8820, usage:278, fined:true,  fineStatus:"paid" },
+  { id:"Z11", name:"Dhandari Kalan",  lat:30.9230, lng:75.8920, usage:167, fined:false, fineStatus:null },
+  { id:"Z12", name:"Focal Point",     lat:30.9300, lng:75.8780, usage:204, fined:false, fineStatus:null },
+  { id:"Z13", name:"Vishwakarma Ngr", lat:30.8920, lng:75.8700, usage:288, fined:true,  fineStatus:"disputed" },
+  { id:"Z14", name:"Khanna Road",     lat:30.8840, lng:75.8820, usage:156, fined:false, fineStatus:null },
+  { id:"Z15", name:"Sherpur Kalan",   lat:30.8760, lng:75.8650, usage:99,  fined:false, fineStatus:null },
+  { id:"Z16", name:"Jamalpur",        lat:30.9350, lng:75.8580, usage:335, fined:true,  fineStatus:"issued" }
+];
+
+var penalties = [
+  { id:"WF-2024-031", zone:"BRS Nagar",       usage:361, excess:161, amount:3000, issued:"22 Mar", due:"29 Mar", status:"issued"   },
+  { id:"WF-2024-030", zone:"Jamalpur",        usage:335, excess:135, amount:3000, issued:"22 Mar", due:"29 Mar", status:"issued"   },
+  { id:"WF-2024-029", zone:"Prem Nagar",      usage:312, excess:112, amount:2000, issued:"21 Mar", due:"28 Mar", status:"notified" },
+  { id:"WF-2024-028", zone:"Vishwakarma Ngr", usage:288, excess:88,  amount:1000, issued:"20 Mar", due:"27 Mar", status:"disputed" },
+  { id:"WF-2024-027", zone:"Gill Road",       usage:278, excess:78,  amount:1000, issued:"18 Mar", due:"25 Mar", status:"paid"     },
+  { id:"WF-2024-026", zone:"Sector 14",       usage:261, excess:61,  amount:1000, issued:"15 Mar", due:"22 Mar", status:"paid"     },
+  { id:"WF-2024-025", zone:"Haibowal Kalan",  usage:241, excess:41,  amount:500,  issued:"10 Mar", due:"17 Mar", status:"paid"     },
+  { id:"WF-2024-024", zone:"Civil Lines",     usage:218, excess:18,  amount:500,  issued:"5 Mar",  due:"12 Mar", status:"paid"     }
+];
+
+var mapFilter = "all";
+var map = null;
+var mapLayers = [];
+
+// ── HELPERS ───────────────────────────────────────────────────
+
+// Returns red / amber / green based on usage vs limit
+function getUsageColor(usage) {
+  if (usage > LIMIT)        return "#ef4444";
+  if (usage >= LIMIT * 0.8) return "#f59e0b";
+  return "#22c55e";
+}
+
+// Returns the fine amount based on how many litres over the limit
+function calcFine(usage) {
+  var excess = usage - LIMIT;
+  if (excess <= 0)   return 0;
+  if (excess <= 50)  return 500;
+  if (excess <= 100) return 1000;
+  if (excess <= 150) return 2000;
+  return 3000;
+}
+
+// Formats rupee amounts: 1500 → ₹1.5k
+function fmtRupee(n) {
+  if (n >= 1000) return "₹" + (n / 1000).toFixed(n % 1000 === 0 ? 0 : 1) + "k";
+  return "₹" + n;
+}
+
+// Finds a zone object by its id string
+function getZone(zid) {
+  for (var i = 0; i < zones.length; i++) {
+    if (zones[i].id === zid) return zones[i];
+  }
+  return null;
+}
+
+// Refreshes all sections after data changes
+function refreshAll() {
+  loadKPIs();
+  renderMapMarkers();
+  buildAlerts();
+  buildGauges();
+  buildCompliance();
+  buildLedger();
+}
+
+// ── CLOCK ─────────────────────────────────────────────────────
+
+function updateClock() {
+  var now = new Date();
+  var hh = ("0" + now.getHours()).slice(-2);
+  var mm = ("0" + now.getMinutes()).slice(-2);
+  var ss = ("0" + now.getSeconds()).slice(-2);
+  document.getElementById("liveClock").textContent = hh + ":" + mm + ":" + ss;
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ── KPI STRIP ─────────────────────────────────────────────────
+
+function loadKPIs() {
+  var exceeded = 0, near = 0, totalUsage = 0;
+  var collected = 0, pendingCount = 0, pendingAmt = 0;
+  var overNames = [];
+
+  for (var i = 0; i < zones.length; i++) {
+    var z = zones[i];
+    totalUsage += z.usage;
+    if (z.usage > LIMIT)        { exceeded++; overNames.push(z.name); }
+    else if (z.usage >= LIMIT * 0.8) near++;
+  }
+
+  for (var j = 0; j < penalties.length; j++) {
+    var p = penalties[j];
+    if (p.status === "paid") collected += p.amount;
+    if (p.status === "issued" || p.status === "notified") { pendingCount++; pendingAmt += p.amount; }
+  }
+
+  document.getElementById("kExceeded").textContent = exceeded;
+  document.getElementById("kExcTrend").textContent = exceeded + " zones";
+  document.getElementById("kNear").textContent     = near;
+  document.getElementById("kAvg").textContent      = Math.round(totalUsage / zones.length) + "L";
+  document.getElementById("kCollected").textContent = fmtRupee(collected);
+  document.getElementById("kPending").textContent  = pendingCount;
+  document.getElementById("kPendAmt").textContent  = fmtRupee(pendingAmt);
+
+  document.getElementById("alertTitle").innerHTML   = "<strong>" + overNames.length + " zones</strong>";
+  document.getElementById("alertCount").textContent = overNames.length;
+  document.getElementById("alertBadge").textContent = overNames.length + " alerts";
+
+  var preview = overNames.slice(0, 4).join(", ");
+  if (overNames.length > 4) preview += " +" + (overNames.length - 4) + " more";
+  document.getElementById("alertZones").textContent = preview;
+}
+
+// ── MAP ───────────────────────────────────────────────────────
+
+function initMap() {
+  map = L.map("waterMap", { zoomControl: true, scrollWheelZoom: true }).setView([30.9050, 75.8650], 13);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    attribution: "© OpenStreetMap", maxZoom: 19
+  }).addTo(map);
+  renderMapMarkers();
+}
+
+function makeWaterIcon(zone) {
+  var color = zone.fined ? "#a78bfa" : getUsageColor(zone.usage);
+  var size  = zone.usage > LIMIT ? 40 : zone.usage >= 160 ? 35 : 30;
+  var emoji = zone.usage > LIMIT ? "🚨" : zone.usage >= 160 ? "⚠️" : "💧";
+  var anim  = zone.usage > LIMIT ? "animation:blink 1s infinite;" : "";
+  var html  = '<div style="' + anim + 'width:' + size + 'px;height:' + size + 'px;background:' + color +
+    ';border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:2px solid rgba(255,255,255,0.3);' +
+    'box-shadow:0 4px 14px rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center">' +
+    '<div style="transform:rotate(45deg);font-size:' + (size * 0.38) + 'px">' + emoji + '</div></div>';
+  return L.divIcon({ html: html, className: "", iconSize: [size, size], iconAnchor: [size / 2, size], popupAnchor: [0, -size] });
+}
+
+function makeMapPopup(zone) {
+  var color    = zone.fined ? "#a78bfa" : getUsageColor(zone.usage);
+  var fine     = calcFine(zone.usage);
+  var pct      = Math.round((zone.usage / LIMIT) * 100);
+  var excess   = zone.usage > LIMIT ? "+" + (zone.usage - LIMIT) + "L" : "Within limit";
+  var exColor  = zone.usage > LIMIT ? "var(--red)" : "var(--green)";
+  var fineRow  = zone.usage > LIMIT ? '<div class="popup-row"><span>Applicable Fine</span><span style="color:var(--red);font-weight:700">₹' + fine + '</span></div>' : "";
+  var btnBg    = zone.usage > LIMIT ? "var(--red)" : "var(--water2)";
+  var btnLabel = zone.usage > LIMIT ? "💸 Issue Fine" : "📋 View Details";
+
+  return '<div class="popup-inner">' +
+    '<div class="popup-zone" style="color:' + color + '">💧 ' + zone.name + '</div>' +
+    '<div class="popup-row"><span>Today\'s Usage</span><span style="color:' + color + ';font-size:13px;font-weight:700">' + zone.usage + 'L</span></div>' +
+    '<div class="popup-row"><span>Daily Limit</span><span>' + LIMIT + 'L</span></div>' +
+    '<div class="popup-row"><span>Excess</span><span style="color:' + exColor + '">' + excess + '</span></div>' +
+    '<div class="popup-usage-bar"><div class="popup-usage-fill" style="width:' + Math.min(pct, 100) + '%;background:' + getUsageColor(zone.usage) + '"></div></div>' +
+    '<div style="font-size:9px;color:var(--text3);margin-bottom:8px">' + pct + '% of limit used</div>' +
+    fineRow +
+    '<button class="popup-btn" style="background:' + btnBg + '" onclick="openFineModal(\'' + zone.id + '\')">' + btnLabel + '</button>' +
+    '</div>';
+}
+
+function renderMapMarkers() {
+  for (var i = 0; i < mapLayers.length; i++) map.removeLayer(mapLayers[i]);
+  mapLayers = [];
+
+  for (var j = 0; j < zones.length; j++) {
+    var z = zones[j];
+    var status = z.usage > LIMIT ? "exceeded" : z.usage >= 160 ? "near" : "safe";
+
+    if (mapFilter !== "all") {
+      if (mapFilter === "fined" && !z.fined) continue;
+      if (mapFilter !== "fined" && status !== mapFilter) continue;
+    }
+
+    var color = z.fined ? "#a78bfa" : getUsageColor(z.usage);
+
+    var circle = L.circle([z.lat, z.lng], {
+      color: color, fillColor: color, fillOpacity: 0.12, opacity: 0.4, weight: 1.5, radius: z.usage * 5
+    }).addTo(map);
+    circle.bindPopup(makeMapPopup(z), { maxWidth: 250 });
+    mapLayers.push(circle);
+
+    var marker = L.marker([z.lat, z.lng], { icon: makeWaterIcon(z) }).addTo(map);
+    marker.bindPopup(makeMapPopup(z), { maxWidth: 250 });
+
+    var tooltip = L.tooltip({ permanent: true, direction: "bottom", offset: [0, 6] });
+    tooltip.setContent('<div style="background:rgba(13,17,23,0.9);border:1px solid #243552;border-radius:5px;padding:2px 7px;font-size:10px;font-weight:700;color:#e2e8f0;white-space:nowrap;font-family:Syne,sans-serif">' + z.name + ' · ' + z.usage + 'L</div>');
+    marker.bindTooltip(tooltip);
+
+    // Use a named function so the correct zone id is captured in the click handler
+    marker.on("click", makeClickHandler(z.id));
+    mapLayers.push(marker);
+  }
+}
+
+function makeClickHandler(zoneId) {
+  return function() { openFineModal(zoneId); };
+}
+
+function setMapFilter(btn, filter) {
+  mapFilter = filter;
+  var chips = document.querySelectorAll(".filter-bar .chip");
+  for (var i = 0; i < chips.length; i++) chips[i].classList.remove("active");
+  btn.classList.add("active");
+  renderMapMarkers();
+}
+
+function mapFitAll() {
+  map.setView([30.9050, 75.8650], 13);
+}
+
+// ── ALERTS LIST ───────────────────────────────────────────────
+
+function buildAlerts() {
+  var list = document.getElementById("alertsList");
+  list.innerHTML = "";
+
+  // Only show zones at 80% or more of the limit
+  var alertZones = [];
+  for (var i = 0; i < zones.length; i++) {
+    if (zones[i].usage >= LIMIT * 0.8) alertZones.push(zones[i]);
+  }
+  alertZones.sort(function(a, b) { return b.usage - a.usage; });
+
+  if (alertZones.length === 0) {
+    list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text3);font-size:12px">✅ All zones within safe limits</div>';
+    return;
+  }
+
+  for (var j = 0; j < alertZones.length; j++) {
+    var z      = alertZones[j];
+    var isOver = z.usage > LIMIT;
+    var color  = isOver ? "var(--red)" : "var(--warn)";
+    var detail = isOver
+      ? "Exceeded by " + (z.usage - LIMIT) + "L · Fine: ₹" + calcFine(z.usage)
+      : "Near limit — " + (LIMIT - z.usage) + "L remaining";
+
+    var btn = "";
+    if (isOver && !z.fined)  btn = '<button class="alert-action-btn aab-fine" onclick="quickFine(\'' + z.id + '\')">💸 Fine</button>';
+    else if (isOver && z.fined) btn = '<button class="alert-action-btn" style="color:var(--text3);border-color:var(--border2)">Fined ✓</button>';
+    else                        btn = '<button class="alert-action-btn aab-warn" onclick="sendWarning(\'' + z.id + '\')">⚠ Warn</button>';
+
+    var div = document.createElement("div");
+    div.className = "alert-item";
+    div.innerHTML =
+      '<div class="alert-dot" style="background:' + color + ';' + (isOver ? "animation:blink 1s infinite" : "") + '"></div>' +
+      '<div class="alert-info"><div class="alert-zone">' + z.name + '</div><div class="alert-detail">' + detail + '</div></div>' +
+      '<div class="alert-usage" style="color:' + color + '">' + z.usage + 'L</div>' + btn;
+    list.appendChild(div);
+  }
+}
+
+// ── ZONE GAUGES ───────────────────────────────────────────────
+
+function buildGauges() {
+  var sort   = document.getElementById("gaugeSort").value;
+  var sorted = zones.slice().sort(function(a, b) {
+    if (sort === "usage") return b.usage - a.usage;
+    if (sort === "pct")   return (b.usage / LIMIT) - (a.usage / LIMIT);
+    return a.name.localeCompare(b.name);
+  });
+
+  var grid = document.getElementById("gaugesGrid");
+  grid.innerHTML = "";
+
+  for (var i = 0; i < sorted.length; i++) {
+    var z      = sorted[i];
+    var pct    = Math.round((z.usage / LIMIT) * 100);
+    var color  = getUsageColor(z.usage);
+    var isOver = z.usage > LIMIT;
+    var isNear = !isOver && z.usage >= LIMIT * 0.8;
+
+    var div = document.createElement("div");
+    div.className = "gauge-card " + (isOver ? "over" : isNear ? "near" : "");
+    div.innerHTML =
+      '<div class="gauge-badge ' + (isOver ? "gb-over" : isNear ? "gb-near" : "gb-safe") + '">' + (isOver ? "EXCEEDED" : isNear ? "NEAR" : "SAFE") + '</div>' +
+      '<div class="gauge-zone">' + z.name + '</div>' +
+      '<div class="gauge-val" style="color:' + color + '">' + z.usage + 'L</div>' +
+      '<div class="gauge-limit">Limit: ' + LIMIT + 'L · ' + (isOver ? "+" + (z.usage - LIMIT) + "L over" : "remaining: " + (LIMIT - z.usage) + "L") + '</div>' +
+      '<div class="gauge-bar-wrap"><div class="gauge-bar-bg"><div class="gauge-bar-fill" style="width:' + Math.min(pct, 100) + '%;background:' + color + '"></div></div></div>' +
+      '<div class="gauge-pct"><span>0L</span><span style="color:' + color + '">' + pct + '%</span><span>200L</span></div>';
+    div.addEventListener("click", makeClickHandler(z.id));
+    grid.appendChild(div);
+  }
+}
+
+// ── COMPLIANCE RANKINGS ───────────────────────────────────────
+
+function buildCompliance() {
+  var sorted = zones.slice().sort(function(a, b) { return a.usage - b.usage; });
+  var list   = document.getElementById("complianceList");
+  list.innerHTML = "";
+
+  var max = 0;
+  for (var i = 0; i < sorted.length; i++) if (sorted[i].usage > max) max = sorted[i].usage;
+
+  for (var j = 0; j < sorted.length; j++) {
+    var z     = sorted[j];
+    var rank  = j + 1;
+    var color = getUsageColor(z.usage);
+    var medal = rank === 1 ? "🥇" : rank === 2 ? "🥈" : rank === 3 ? "🥉" : "#" + rank;
+    var rankColor = rank <= 3 ? "var(--green)" : rank >= sorted.length - 2 ? "var(--red)" : "var(--text3)";
+
+    var div = document.createElement("div");
+    div.className = "comp-item";
+    div.innerHTML =
+      '<div class="comp-rank" style="color:' + rankColor + '">' + medal + '</div>' +
+      '<div class="comp-name">' + z.name + '</div>' +
+      '<div class="comp-bar-wrap"><div class="comp-bar-bg"><div class="comp-bar-fill" style="width:' + Math.round((z.usage / max) * 100) + '%;background:' + color + '"></div></div></div>' +
+      '<div class="comp-pct" style="color:' + color + '">' + z.usage + 'L</div>';
+    div.addEventListener("click", makeClickHandler(z.id));
+    list.appendChild(div);
+  }
+}
+
+// ── PENALTY LEDGER ────────────────────────────────────────────
+
+function buildLedger() {
+  var filter = document.getElementById("ledgerFilter").value;
+  var tbody  = document.getElementById("penaltyTbody");
+  tbody.innerHTML = "";
+  var total = 0;
+
+  for (var i = 0; i < penalties.length; i++) {
+    var p = penalties[i];
+    if (filter !== "all" && p.status !== filter) continue;
+    total += p.amount;
+
+    var tr = document.createElement("tr");
+    tr.innerHTML =
+      '<td class="pen-id">' + p.id + '</td>' +
+      '<td style="font-weight:700">' + p.zone + '</td>' +
+      '<td style="font-family:\'Space Mono\',monospace;color:var(--water)">' + p.usage + 'L</td>' +
+      '<td style="font-family:\'Space Mono\',monospace;color:var(--red)">+' + p.excess + 'L</td>' +
+      '<td class="pen-amt">₹' + p.amount.toLocaleString() + '</td>' +
+      '<td style="color:var(--text3)">' + p.issued + '</td>' +
+      '<td style="color:' + (p.status === "paid" ? "var(--green)" : "var(--warn)") + '">' + p.due + '</td>' +
+      '<td><span class="pen-status ps-' + p.status + '">' + p.status + '</span></td>' +
+      '<td><button class="pen-btn" onclick="updatePenStatus(\'' + p.id + '\')">Update</button></td>';
+    tbody.appendChild(tr);
+  }
+  document.getElementById("totalFineAmt").textContent = "₹" + total.toLocaleString() + " total";
+}
+
+function updatePenStatus(penId) {
+  var order = ["issued", "notified", "paid"];
+  for (var i = 0; i < penalties.length; i++) {
+    if (penalties[i].id === penId) {
+      var idx = order.indexOf(penalties[i].status);
+      if (idx < order.length - 1) {
+        penalties[i].status = order[idx + 1];
+        showToast("✅ " + penId + " → " + penalties[i].status, "success");
+      } else {
+        showToast("Fine already marked as paid", "warn");
+      }
+      break;
+    }
+  }
+  buildLedger();
+  loadKPIs();
+}
+
+// ── FINE MODAL ────────────────────────────────────────────────
+
+function openFineModal(zoneId) {
+  var sel = document.getElementById("fineZoneSelect");
+  sel.innerHTML = "";
+  for (var i = 0; i < zones.length; i++) {
+    var opt = document.createElement("option");
+    opt.value = zones[i].id;
+    opt.textContent = zones[i].name + " (" + zones[i].usage + "L)";
+    if (zones[i].id === zoneId) opt.selected = true;
+    sel.appendChild(opt);
+  }
+  updateFinePreview();
+  document.getElementById("fineModal").classList.add("open");
+}
+
+function updateFinePreview() {
+  var zone = getZone(document.getElementById("fineZoneSelect").value);
+  if (!zone) return;
+
+  var fine  = calcFine(zone.usage);
+  var color = zone.usage > LIMIT ? "var(--red)" : "var(--green)";
+  var tier  = fine === 0 ? "No fine" : fine <= 500 ? "Tier 1" : fine <= 1000 ? "Tier 2" : fine <= 2000 ? "Tier 3" : "Tier 4";
+  var excess = zone.usage > LIMIT ? "+" + (zone.usage - LIMIT) + "L" : "None";
+  var info  = zone.usage > LIMIT
+    ? "<strong>" + zone.name + "</strong> used <strong>" + zone.usage + "L</strong><br>Exceeds limit by <strong>" + (zone.usage - LIMIT) + "L</strong><br>Applicable fine: <strong>₹" + fine + "</strong>"
+    : zone.name + " is within the 200L limit.<br>No fine applicable.";
+
+  document.getElementById("fineAmt").textContent     = "₹" + fine;
+  document.getElementById("fineAmt").style.color     = color;
+  document.getElementById("fineInfo").innerHTML      = info;
+  document.getElementById("modalInfoGrid").innerHTML =
+    '<div class="mf"><label>Zone</label><span>' + zone.name + '</span></div>' +
+    '<div class="mf"><label>Usage Today</label><span style="color:' + getUsageColor(zone.usage) + '">' + zone.usage + 'L</span></div>' +
+    '<div class="mf"><label>Excess</label><span style="color:var(--red)">' + excess + '</span></div>' +
+    '<div class="mf"><label>Fine Tier</label><span style="color:' + color + '">' + tier + '</span></div>';
+}
+
+function confirmFine() {
+  var zone = getZone(document.getElementById("fineZoneSelect").value);
+  if (!zone) { closeModal(); return; }
+
+  var fine = calcFine(zone.usage);
+  if (fine === 0) { showToast("Zone is within limit — no fine applicable", "warn"); closeModal(); return; }
+
+  zone.fined = true;
+  zone.fineStatus = "issued";
+  penalties.unshift({
+    id: "WF-2024-0" + (32 + penalties.length),
+    zone: zone.name, usage: zone.usage, excess: zone.usage - LIMIT,
+    amount: fine, issued: "22 Mar", due: "29 Mar", status: "issued"
+  });
+
+  closeModal();
+  refreshAll();
+  showToast("💸 Fine of ₹" + fine + " issued to " + zone.name, "success");
+}
+
+function closeModal() {
+  document.getElementById("fineModal").classList.remove("open");
+}
+
+// ── QUICK ACTIONS ─────────────────────────────────────────────
+
+function quickFine(zid)    { openFineModal(zid); }
+
+function sendWarning(zid) {
+  var zone = getZone(zid);
+  if (zone) showToast("⚠️ Warning sent to " + zone.name, "warn");
+}
+
+function issueAllPending() {
+  var count = 0;
+  for (var i = 0; i < zones.length; i++) {
+    var z = zones[i];
+    if (z.usage > LIMIT && !z.fined) {
+      var fine = calcFine(z.usage);
+      z.fined = true;
+      z.fineStatus = "issued";
+      penalties.unshift({
+        id: "WF-2024-0" + (32 + penalties.length),
+        zone: z.name, usage: z.usage, excess: z.usage - LIMIT,
+        amount: fine, issued: "22 Mar", due: "29 Mar", status: "issued"
+      });
+      count++;
+    }
+  }
+  if (count > 0) { refreshAll(); showToast("💸 " + count + " fines issued", "success"); }
+  else showToast("All exceeding zones already fined", "warn");
+}
+
+function simulateTick() {
+  for (var i = 0; i < zones.length; i++) {
+    zones[i].usage = Math.max(50, zones[i].usage + Math.floor(Math.random() * 20) - 5);
+  }
+  refreshAll();
+  showToast("🔄 Meter readings updated", "success");
+}
+
+// ── TOAST ─────────────────────────────────────────────────────
+
+function showToast(msg, type) {
+  var div = document.createElement("div");
+  div.className = "toast " + (type || "");
+  var icon = type === "success" ? "✅" : type === "warn" ? "⚠️" : "❌";
+  div.textContent = icon + " " + msg;
+  document.getElementById("toastWrap").appendChild(div);
+  setTimeout(function() {
+    div.style.cssText += "opacity:0;transform:translateX(16px);transition:all 0.3s";
+    setTimeout(function() { div.remove(); }, 300);
+  }, 3200);
+}
+
+// ── INIT ──────────────────────────────────────────────────────
+
+loadKPIs();
+initMap();
+buildAlerts();
+buildGauges();
+buildCompliance();
+buildLedger();
+</script>
+</body>
+</html>

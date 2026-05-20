@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Login</title>
+    <link rel="stylesheet" href="css/login.css">
+</head>
+<body>
+     <a class="btn-back" href="getstarted.html">← Back</a>
+    <div class="container">
+    <div class="icon">👤</div>
+    <h2>User Login</h2>
+    <p class="subtitle">Sign in to your personal account</p>
+
+   <form id="loginForm" novalidate>
+
+            <!--  NEW: Name field -->
+            <label for="fullname">Full Name</label>
+            <input type="text" id="fullname" name="fullname" placeholder="Enter your name" required />
+
+            <label for="email">Email</label>
+            <input type="email" id="email" name="email" placeholder="you@example.com" required />
+
+            <label for="password">Password</label>
+            <input type="password" id="password" name="password" placeholder="••••••••" required />
+
+            <div class="remember-row">
+                <div class="remember-left">
+                    <input type="checkbox" id="remember" name="remember">
+                    <label for="remember">Remember me</label>
+                </div>
+                <a class="forgot-link" href="#">Forgot password?</a>
+            </div>
+
+            <button type="button" class="btn-submit" id="submitBtn" onclick="handleLogin()">Log In</button>
+            <div class="error-msg" id="errorMsg"></div>
+        </form>
+
+        <div class="demo-hint">
+            <!-- Header row: label on left, autofill button on right -->
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
+                <!-- Small pill button — onclick fills all three fields with demo values -->
+                <button
+                    type="button"
+                    id="autofillBtn"
+                    onclick="fillDemoCredentials()"
+                    style="font-size:11px; padding:2px 9px; border-radius:20px; border:1.5px solid #5a6acf; color:#5a6acf; background:transparent; cursor:pointer; font-weight:500;"
+                    onmouseover="this.style.background='#5a6acf'; this.style.color='#fff';"
+                    onmouseout="this.style.background='transparent'; this.style.color='#5a6acf';"
+                >⚡ Autofill</button>
+            <!-- </div>
+            Email: &nbsp;&nbsp;&nbsp;user@example.com<br>
+            Password: password123
+        </div> -->
+
+   <script>
+        // correct demo credentials that the user's input will be checked against:
+        const VALID_EMAIL    = 'user@example.com';
+        const VALID_PASSWORD = 'password123';
+
+        // fillDemoCredentials() runs when the Autofill button is clicked.
+        // It fills the name, email, and password fields with the demo values,
+        // clears any leftover errors, and briefly shows a "✓ Filled!" confirmation on the button.
+        function fillDemoCredentials() {
+            document.getElementById('fullname').value = 'Demo User';
+            document.getElementById('email').value    = VALID_EMAIL;
+            document.getElementById('password').value = VALID_PASSWORD;
+
+            // Clear any existing error state since the fields are now correctly filled
+            document.getElementById('errorMsg').style.display = 'none';
+            document.getElementById('email').classList.remove('input-error');
+            document.getElementById('password').classList.remove('input-error');
+
+            // Brief visual feedback: button turns green for 1.5s then reverts
+            const btn = document.getElementById('autofillBtn');
+            btn.textContent        = '✓ Filled!';
+            btn.style.background   = '#22c55e';
+            btn.style.borderColor  = '#22c55e';
+            btn.style.color        = '#fff';
+            setTimeout(() => {
+                btn.textContent        = '⚡ Autofill';
+                btn.style.background   = 'transparent';
+                btn.style.borderColor  = '#5a6acf';
+                btn.style.color        = '#5a6acf';
+            }, 1500);
+        }
+
+        function handleLogin() {
+            // When the handleLogin() function runs, it grabs the input elements (name, email, password), the error message box, and the login button from the page. It then reads the values entered by the user and removes any extra spaces using trim().
+            const nameEl    = document.getElementById('fullname');
+            const emailEl   = document.getElementById('email');
+            const passEl    = document.getElementById('password');
+            const errorMsg  = document.getElementById('errorMsg');
+            const submitBtn = document.getElementById('submitBtn');
+
+            const name     = nameEl.value.trim();
+            const email    = emailEl.value.trim();
+            const password = passEl.value;
+
+            // Reset
+            // This part of the code is used to clear any previous error state before running a new validation. When the user clicks the login button again, old error messages or red highlights may still be visible. So first, errorMsg.style.display = 'none' hides the error message box if it was shown earlier. Then, emailEl.classList.remove('input-error') and passEl.classList.remove('input-error') remove the error styling (like red borders) from the email and password fields. This basically resets the form to a clean state, so the new validation results can be shown properly without mixing with old errors.
+
+            errorMsg.style.display = 'none';
+            emailEl.classList.remove('input-error');
+            passEl.classList.remove('input-error');
+
+            // if/else validation
+            if (name === '') {
+                // "if the name field is empty", it shows an error message ("Please enter your name"), makes the error box visible using display = 'block', and moves the cursor back to the name field using focus(): pre buit js method used to put the cursor inside an input field, here it takes the cursor to the name field so the user can fix it.
+                errorMsg.textContent   = '❌ Please enter your name.';
+                errorMsg.style.display = 'block';
+                nameEl.focus();
+            } 
+            // If both match, it means the login is successful. So, the button text changes to "Signing in…" to give feedback to the user, and the button is disabled (disabled = true) to prevent multiple clicks while the login process continues.
+            else if (email === VALID_EMAIL && password === VALID_PASSWORD) {
+
+                submitBtn.textContent = 'Signing in…';
+                submitBtn.disabled    = true;
+
+                //  Save name + email so userprofile.html can read them: used to save user data and then redirect the user to another page after login.
+                // information is stored in sessionStorage.setItem, which is a built-in browser storage. It temporarily saves data for the current session (until the tab is closed).
+                // sessionStorage.setItem(key, value); key → name of the data, value → actual data you want to store. Each line saves a piece of data as a key–value pair.
+                sessionStorage.setItem('loggedIn',  'true');
+                sessionStorage.setItem('userName',  name);
+                sessionStorage.setItem('userEmail', email);
+
+                setTimeout(function() {
+                    //used to decide which page the user should go to after logging in. getItem reads data from storage
+                    // redirectAfterLogin is for= it remembers your "target page" while you log in.
+                    // If redirectAfterLogin is empty or not set, use 'userprofile.html' as a default page.
+                    var redirectTo = sessionStorage.getItem('redirectAfterLogin') || 'userprofile.html';
+                    // If you previously stored a page to redirect the user after login, calling this removes that information so it doesn’t persist anymore. This is useful after the redirect has happened, or if you want to clear outdated data.
+                    sessionStorage.removeItem('redirectAfterLogin');
+                    window.location.href = redirectTo;
+                }, 600); // Runs the function after 0.6 seconds
+
+            } else {
+                errorMsg.textContent   = '❌ Incorrect email or password. Please try again.';
+                errorMsg.style.display = 'block';
+                emailEl.classList.add('input-error');
+                passEl.classList.add('input-error');
+                passEl.value = '';
+                passEl.focus();
+            }
+        }
+
+        document.getElementById('loginForm').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') handleLogin();
+        });
+
+        // document.getElementById('loginForm')gets the <form> element with id loginForm.
+        //     .addEventListener('keydown', function(e) { ... })tells the browser to run this function every time a key is pressed inside the form. 
+        //     keydown = any key pressed down
+        //     function(e) → e is the event object, contains info about the key pressed.
+        //     if (e.key === 'Enter'): Checks if the key that was pressed is the Enter key.
+        //     handleLogin();=> if Enter was pressed, it runs the login function exactly as if the user clicked the "Log In" button.
+    </script>
+</body>
+</html>

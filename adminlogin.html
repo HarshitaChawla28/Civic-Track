@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin Login</title>
+  <link rel="stylesheet" href="css/adminlogin.css">
+</head>
+<body>
+
+  <a class="btn-back" href="getstarted.html">← Back</a>
+
+  <div class="container">
+    <div class="icon">🛡️</div>
+    <h2>Admin / Authority</h2>
+    <p class="subtitle">Restricted access — authorized personnel only</p>
+
+    <div class="warning-banner">
+      ⚠️ Unauthorized access attempts are logged and monitored.
+    </div>
+
+    <button type="button" onclick="fillDefault()" class="btn-default">
+      ⚡ Use Demo Credentials
+    </button>
+
+    <form action="#" method="post">
+
+      <!-- Identity -->
+      <div class="section-title">Identity</div>
+
+      <div class="two-col">
+        <div class="field">
+          <label for="admin-id">Admin ID</label>
+          <input type="text" id="admin-id" name="admin_id" placeholder="Enter admin ID" required />
+        </div>
+        <div class="field">
+          <label for="badge-id">Badge / Employee ID</label>
+          <input type="text" id="badge-id" name="badge_id" placeholder="e.g. EMP-0042" required />
+        </div>
+      </div>
+
+      <div class="two-col">
+        <div class="field">
+          <label for="department">Department</label>
+          <select id="department" name="department" required>
+            <option value="" disabled selected>Select department</option>
+            <option>Municipal Administration</option>
+            <option>Public Works</option>
+            <option>Finance & Audit</option>
+            <option>Health & Sanitation</option>
+            <option>IT & Systems</option>
+            <option>Law & Enforcement</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="designation">Designation</label>
+          <input type="text" id="designation" name="designation" placeholder="e.g. Supervisor" required />
+        </div>
+      </div>
+
+      <label for="access-level">Access Level</label>
+      <select id="access-level" name="access_level" required>
+        <option value="" disabled selected>Select access level</option>
+        <option>Level 1 — View Only</option>
+        <option>Level 2 — Standard Admin</option>
+        <option>Level 3 — Senior Authority</option>
+        <option>Level 4 — Super Admin</option>
+      </select>
+
+      <!-- Credentials -->
+      <div class="section-title">Credentials</div>
+
+      <label for="password">Password</label>
+      <input type="password" id="password" name="password" placeholder="••••••••" required />
+
+      <label for="auth-code">Auth Code</label>
+      <input type="text" id="auth-code" name="auth_code" placeholder="6-digit code" maxlength="6" required />
+
+      <button type="button" class="btn-submit" onclick="adminLogin()">Authenticate</button>
+    </form>
+
+    <a class="back" href="index.html">← Back to portal</a>
+  </div>
+
+<script>
+  // This function is called when the user clicks the “Use Demo Credentials” button on the login page. This function automatically populates the form with demo credentials so that someone testing the login form doesn’t have to type anything manually.
+function fillDefault() {
+  document.getElementById('admin-id').value    = 'ADM-001';
+  document.getElementById('badge-id').value    = 'EMP-0042';
+  document.getElementById('designation').value = 'Senior Supervisor';
+  document.getElementById('password').value    = 'Admin@1234';
+  document.getElementById('auth-code').value   = '482910';
+
+  // This code snippet is used to automatically select default options in two dropdown menus when the user clicks the “Demo Credentials” button. First, it finds the department dropdown and loops through all its options. When it finds the option with the text “Municipal Administration,” it sets that option as selected using selectedIndex and then stops checking further options. Similarly, it finds the access level dropdown and loops through its options. It looks for any option whose text contains “Level 3” and selects it, again stopping after a match is found. The purpose of this code is to pre-fill these two fields with demo values, so the user doesn’t have to select them manually, while still allowing the user to change the selections if they wish.
+
+  var dept = document.getElementById('department');
+  for (var i = 0; i < dept.options.length; i++) {
+    if (dept.options[i].text === 'Municipal Administration') {
+      dept.selectedIndex = i;
+      break;
+    }
+  }
+
+  var level = document.getElementById('access-level');
+  for (var i = 0; i < level.options.length; i++) {
+    if (level.options[i].text.indexOf('Level 3') !== -1) {
+      level.selectedIndex = i;
+      break;
+    }
+  }
+}
+
+// adminLogin() function collects all the information the admin has entered in the login form: Admin ID, Badge/Employee ID, and Designation from their respective text input fields, using .trim() to remove any extra spaces. It also gets the selected values from the Department and Access Level dropdown menus. Finally, it reads the Password and Auth Code inputs, again trimming any spaces. By storing all these values in variables, the function can later validate the input, check that all fields are filled correctly, store the user session, and redirect the admin to the main portal after successful authentication.
+function adminLogin() {
+  var adminId     = document.getElementById('admin-id').value.trim();
+  var badgeId     = document.getElementById('badge-id').value.trim();
+  var designation = document.getElementById('designation').value.trim();
+  var department  = document.getElementById('department').value;
+  var accessLevel = document.getElementById('access-level').value;
+  var password    = document.getElementById('password').value.trim();
+  var authCode    = document.getElementById('auth-code').value.trim();
+
+  if (!adminId || !badgeId || !designation || !department || !accessLevel || !password || !authCode) {
+    alert('Please fill in all fields before authenticating.');
+    return;
+  }
+  if (authCode.length !== 6 || isNaN(authCode)) {
+    alert('Auth Code must be exactly 6 digits.');
+    return;
+  }
+
+  // This code saves the admin’s login information in the browser’s session storage so it can be accessed later while the user is on the site. sessionStorage is a web API that allows you to store data in the browser for the duration of the page session. setItem takes two arguments: key = the name you want to store the data under ('ct_user' here)value = the data you want to store (must be a string)
+  sessionStorage.setItem('ct_user', JSON.stringify({
+    // JSON.stringify() converts a JavaScript object into a JSON string, because sessionStorage can only store strings. The object being converted here contains information about the logged-in user.
+    name:        designation,
+    adminId:     adminId,
+    badgeId:     badgeId,
+    role:        accessLevel,
+    dept:        department,
+    city:        'Ludhiana',
+
+    // new Date() creates the current date and time. .toLocaleTimeString('en-IN', {hour:'2-digit', minute:'2-digit'}) formats the time in Indian time style showing only hours and minutes, like "03:45 PM".
+    loginTime:   new Date().toLocaleTimeString('en-IN', {hour:'2-digit', minute:'2-digit'})
+  }));
+
+  // Finds the first element with the class btn-submit and stores it in btn.
+  var btn = document.querySelector('.btn-submit');
+
+  // Updates the text to show a checkmark and a success message.
+  btn.textContent = '✔ Authenticated — Opening Portal...';
+
+  // Sets a greenish background to indicate success.
+  btn.style.backgroundColor = '#00c896';
+
+  // Makes the button text darker for contrast.
+  btn.style.color = '#060f1c';
+
+  // Prevents the user from clicking it again.
+  btn.disabled = true;
+
+  // setTimeout is a prebuilt js function that executes after a specified delay.(in miliseconds)
+  setTimeout(function() {
+    window.location.href = 'adminmain.html';
+  }, 900);
+}
+</script>
+
+</body>
+</html>

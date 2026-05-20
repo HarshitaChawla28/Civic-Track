@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Track Complaint - CivicTrack</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <link rel="stylesheet" href="css/track.css"/>
+</head>
+<body>
+
+  <header>
+    <nav>
+      <a href="#" class="logo"><span class="logo-dot"></span>CivicTrack</a>
+      <a href="userprofile.html" class="nav-back">← Back</a>
+    </nav>
+  </header>
+
+  <div class="hero">
+    <h1>🔍 Track Your Complaint</h1>
+    <p>Enter your Tracking ID to see real-time status and location.</p>
+    <div class="search-wrap">
+      <input type="text" id="track-input" placeholder="e.g. CT-2025-0041" maxlength="20"/>
+      <button class="search-btn" onclick="trackComplaint()">Track →</button>
+    </div>
+    <div class="quick-ids">
+      Try: <span onclick="quickTrack('CT-2025-0041')">CT-2025-0041</span>
+           <span onclick="quickTrack('CT-2025-0038')">CT-2025-0038</span>
+           <span onclick="quickTrack('CT-2025-0029')">CT-2025-0029</span>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="empty-state" id="empty-state">
+      <span class="big-icon">📋</span>
+      <h3>Enter a Tracking ID above</h3>
+      <p>Your tracking ID was sent to you when you filed a complaint. It looks like CT-2025-XXXX.</p>
+    </div>
+    <div class="loading" id="loading"><div class="spinner"></div>Looking up complaint...</div>
+    <div class="not-found" id="not-found"><h3>❌ Complaint Not Found</h3><p>No complaint found with that ID. Please check and try again.</p></div>
+    <div class="result" id="result"></div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+
+    /* ══════════════════════════════════════════════════
+       HARDCODED DEMO COMPLAINTS
+    ══════════════════════════════════════════════════ */
+    var hardcodedComplaints = [
+      {
+        id: "CT-2025-0041",
+        type: "Broken Road", icon: "🛣️",
+        location: "Andheri West, Near SV Road Signal",
+        ward: "Ward 12", city: "Mumbai",
+        filed: "10 Mar 2025", status: "In Progress", severity: "High",
+        assignedTo: "Roads & Infrastructure Dept.", deptIcon: "🛣️",
+        deptPhone: "1800-222-0041", deptEmail: "roads@mcgm.gov.in",
+        daysFiled: 10, etaDays: "3–5 days", progress: 60,
+        lat: 19.1136, lng: 72.8697,
+        photos: [
+          "images/path.jpg",
+        ],
+        updates: [
+          { text: "Repair crew arrived on site",  detail: "Team of 4 workers began work on pothole repair", time: "12 Mar, 8:00 AM", color: "ud-blue" },
+          { text: "Materials procured",            detail: "Bitumen and gravel arranged by dept.",           time: "11 Mar, 3:00 PM", color: "ud-amber" },
+          { text: "Team dispatched from depot",    detail: "Roads dept. confirmed dispatch",                 time: "11 Mar, 9:00 AM", color: "ud-blue" },
+          { text: "Complaint verified",            detail: "Municipal officer inspected the site",           time: "10 Mar, 11:30 AM",color: "ud-green" }
+        ],
+        nearby: [
+          { id: "CT-2025-0039", type: "Broken Road",    location: "Andheri West Market", status: "In Progress", icon: "🛣️" },
+          { id: "CT-2025-0035", type: "Garbage",         location: "Station Road, Ward 9", status: "Pending",     icon: "🗑️" }
+        ],
+        timeline: [
+          { step: "Report Submitted",  time: "10 Mar 2025, 9:14 AM",  status: "done",    note: "Complaint received and logged." },
+          { step: "Verified by Admin", time: "10 Mar 2025, 11:30 AM", status: "done",    note: "Issue confirmed by municipal officer." },
+          { step: "Team Assigned",     time: "11 Mar 2025, 9:00 AM",  status: "done",    note: "Roads dept. team dispatched." },
+          { step: "Work In Progress",  time: "12 Mar 2025, 8:00 AM",  status: "active",  note: "Repair crew currently on site." },
+          { step: "Quality Check",     time: "Pending",               status: "pending", note: "" },
+          { step: "Resolved",          time: "Pending",               status: "pending", note: "" }
+        ]
+      },
+      {
+        id: "CT-2025-0038",
+        type: "Water Leakage", icon: "💧",
+        location: "Ward 12 Main Road, Near Post Office",
+        ward: "Ward 12", city: "Mumbai",
+        filed: "06 Mar 2025", status: "Pending", severity: "Medium",
+        assignedTo: "Water Supply Dept.", deptIcon: "💧",
+        deptPhone: "1800-222-0038", deptEmail: "water@mcgm.gov.in",
+        daysFiled: 14, etaDays: "5–7 days", progress: 20,
+        lat: 19.1190, lng: 72.8460,
+        photos: ["images/waterleak.jpg"],
+        updates: [
+          { text: "Complaint under review", detail: "Water dept. assigned inspector",           time: "07 Mar, 10:00 AM", color: "ud-amber" },
+          { text: "Complaint logged",       detail: "System registered complaint successfully", time: "06 Mar, 2:10 PM",  color: "ud-green" }
+        ],
+        nearby: [
+          { id: "CT-2025-0044", type: "Water Leakage", location: "S.V. Road, Ward 12",   status: "Pending",     icon: "💧" },
+          { id: "CT-2025-0031", type: "Drainage Block", location: "Link Road, Ward 12",   status: "In Progress", icon: "🚧" }
+        ],
+        timeline: [
+          { step: "Report Submitted", time: "06 Mar 2025, 2:10 PM",  status: "done",    note: "Complaint received and logged." },
+          { step: "Verified by Admin",time: "07 Mar 2025, 10:00 AM", status: "active",  note: "Under review by water dept." },
+          { step: "Team Assigned",    time: "Pending",               status: "pending", note: "" },
+          { step: "Work In Progress", time: "Pending",               status: "pending", note: "" },
+          { step: "Quality Check",    time: "Pending",               status: "pending", note: "" },
+          { step: "Resolved",         time: "Pending",               status: "pending", note: "" }
+        ]
+      },
+      {
+        id: "CT-2025-0029",
+        type: "Street Light Out", icon: "💡",
+        location: "Park Street, Ward 12",
+        ward: "Ward 12", city: "Mumbai",
+        filed: "28 Feb 2025", status: "Resolved", severity: "Low",
+        assignedTo: "Electrical Dept.", deptIcon: "💡",
+        deptPhone: "1800-222-0029", deptEmail: "electrical@mcgm.gov.in",
+        daysFiled: 3, etaDays: "Completed", progress: 100,
+        lat: 19.1080, lng: 72.8350,
+        photos: [
+          "images/streetlight.jpg",
+        ],
+        updates: [
+          { text: "Complaint officially closed", detail: "Resolution confirmed and logged",         time: "02 Mar, 5:30 PM", color: "ud-green" },
+          { text: "Quality check passed",        detail: "Inspector verified the fix on-site",      time: "02 Mar, 5:00 PM", color: "ud-green" },
+          { text: "Repair completed",            detail: "Bulb and wiring replaced successfully",   time: "02 Mar, 8:00 AM", color: "ud-blue" },
+          { text: "Electrical team on site",     detail: "Team arrived with replacement parts",     time: "01 Mar, 2:00 PM", color: "ud-blue" }
+        ],
+        nearby: [
+          { id: "CT-2025-0019", type: "Street Light", location: "Park Street, Ward 12", status: "Resolved", icon: "💡" }
+        ],
+        timeline: [
+          { step: "Report Submitted", time: "28 Feb 2025, 7:00 PM", status: "done", note: "Complaint received and logged." },
+          { step: "Verified by Admin",time: "01 Mar 2025, 9:30 AM", status: "done", note: "Issue confirmed." },
+          { step: "Team Assigned",    time: "01 Mar 2025, 2:00 PM", status: "done", note: "Electrical team assigned." },
+          { step: "Work In Progress", time: "02 Mar 2025, 8:00 AM", status: "done", note: "Bulb and wiring replaced." },
+          { step: "Quality Check",    time: "02 Mar 2025, 5:00 PM", status: "done", note: "Inspector verified fix." },
+          { step: "Resolved",         time: "02 Mar 2025, 5:30 PM", status: "done", note: "Complaint closed successfully." }
+        ]
+      }
+    ];
+
+    /* ══════════════════════════════════════════════════
+       MERGE: hardcoded + user-filed from sessionStorage
+    ══════════════════════════════════════════════════ */
+    function getAllComplaints() {
+      var userComplaints = JSON.parse(sessionStorage.getItem('userComplaints') || '[]');
+      /* User complaints take priority (listed first), then hardcoded */
+      return userComplaints.concat(hardcodedComplaints);
+    }
+
+    var map = null;
+
+    /* ── Quick fill ── */
+    function quickTrack(id) {
+      document.getElementById('track-input').value = id;
+      trackComplaint();
+    }
+
+    /* ── Main track function ── */
+    function trackComplaint() {
+      var input = document.getElementById('track-input').value.trim().toUpperCase();
+      if (!input) return;
+
+      document.getElementById('empty-state').style.display = 'none';
+      document.getElementById('result').style.display = 'none';
+      document.getElementById('not-found').style.display = 'none';
+      document.getElementById('loading').style.display = 'block';
+
+      setTimeout(function() {
+        document.getElementById('loading').style.display = 'none';
+
+        var allComplaints = getAllComplaints();
+        var found = null;
+        for (var i = 0; i < allComplaints.length; i++) {
+          /* Case-insensitive match */
+          if (allComplaints[i].id.toUpperCase() === input) {
+            found = allComplaints[i];
+            break;
+          }
+        }
+
+        if (!found) {
+          document.getElementById('not-found').style.display = 'block';
+          return;
+        }
+
+        renderResult(found);
+      }, 800);
+    }
+
+    /* ── Render complaint result ── */
+    function renderResult(c) {
+      var pillClass = c.status === 'Resolved' ? 'pill-resolved' : c.status === 'In Progress' ? 'pill-progress' : 'pill-pending';
+      var fillClass = c.status === 'Resolved' ? 'fill-resolved' : c.status === 'In Progress' ? 'fill-progress' : 'fill-pending';
+      var sevColor  = c.severity === 'High' || c.severity === 'high' ? '#EF4444' : (c.severity === 'Medium' || c.severity === 'medium') ? '#F59E0B' : '#16C784';
+
+      /* ── Timeline HTML ── */
+      var tlHTML = '';
+      for (var t = 0; t < c.timeline.length; t++) {
+        var tl = c.timeline[t];
+        tlHTML +=
+          '<div class="tl-item">' +
+            '<div class="tl-dot ' + tl.status + '">' + (tl.status === 'done' ? '✓' : tl.status === 'active' ? '→' : (t+1)) + '</div>' +
+            '<div class="tl-content">' +
+              '<h4>' + tl.step + '</h4>' +
+              (tl.note ? '<p>' + tl.note + '</p>' : '') +
+              (tl.time !== 'Pending' ? '<div class="tl-time">' + tl.time + '</div>' : '<div class="tl-time" style="color:#3a4f6e;">Awaiting...</div>') +
+            '</div>' +
+          '</div>';
+      }
+
+      /* ── Photos HTML ── */
+      var photoHTML = '';
+      if (c.photos && c.photos.length > 0) {
+        for (var p = 0; p < c.photos.length; p++)
+          photoHTML += '<img src="' + c.photos[p] + '" alt="Complaint photo" loading="lazy"/>';
+      } else {
+        photoHTML = '<div class="no-photo">No photos attached to this complaint.</div>';
+      }
+
+      /* ── Updates HTML ── */
+      var updatesHTML = '';
+      for (var u = 0; u < c.updates.length; u++) {
+        var upd = c.updates[u];
+        updatesHTML +=
+          '<div class="update-item">' +
+            '<div class="update-dot ' + upd.color + '"></div>' +
+            '<div class="update-text"><h5>' + upd.text + '</h5><p>' + upd.detail + '</p></div>' +
+            '<div class="update-time">' + upd.time + '</div>' +
+          '</div>';
+      }
+
+      /* ── Nearby HTML ── */
+      var nearbyHTML = '';
+      if (c.nearby && c.nearby.length > 0) {
+        for (var n = 0; n < c.nearby.length; n++) {
+          var nb = c.nearby[n];
+          var nbPill = nb.status === 'Resolved' ? 'pill-resolved' : nb.status === 'In Progress' ? 'pill-progress' : 'pill-pending';
+          nearbyHTML +=
+            '<div class="nearby-item">' +
+              '<div class="ni-left">' +
+                '<div class="ni-icon">' + nb.icon + '</div>' +
+                '<div class="ni-info"><h5>' + nb.id + '</h5><p>' + nb.type + ' · ' + nb.location + '</p></div>' +
+              '</div>' +
+              '<span class="ni-pill ' + nbPill + '">' + nb.status + '</span>' +
+            '</div>';
+        }
+      }
+
+      /* ── User-filed notice banner ── */
+      var userFiledBanner = c.userFiled ?
+        '<div style="background:rgba(43,127,255,0.12);border:1px solid rgba(43,127,255,0.3);border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:13px;color:#7AB2FF;display:flex;align-items:center;gap:10px;">' +
+          '<span style="font-size:18px;">📋</span>' +
+          '<span>This is <strong>your complaint</strong>, filed on ' + (c.filedFull || c.filed) + '. You will receive updates as it progresses.</span>' +
+        '</div>' : '';
+
+      /* ── Feedback (resolved only) ── */
+      var feedbackHTML = c.status === 'Resolved' ?
+        '<div class="feedback-card">' +
+          '<div class="card-title">⭐ Rate This Resolution</div>' +
+          '<p style="font-size:13px;color:#7A8BAA;">How satisfied are you with how this complaint was handled?</p>' +
+          '<div class="stars-row" id="stars-row">' +
+            '<span class="star" onclick="rateStar(1)">★</span>' +
+            '<span class="star" onclick="rateStar(2)">★</span>' +
+            '<span class="star" onclick="rateStar(3)">★</span>' +
+            '<span class="star" onclick="rateStar(4)">★</span>' +
+            '<span class="star" onclick="rateStar(5)">★</span>' +
+          '</div>' +
+          '<textarea class="feedback-textarea" id="feedback-text" rows="3" placeholder="Optional — tell us more about your experience..."></textarea>' +
+          '<br><button class="submit-feedback" onclick="submitFeedback()">Submit Feedback</button>' +
+          '<p class="feedback-thanks" id="feedback-thanks">✅ Thank you for your feedback!</p>' +
+        '</div>' : '';
+
+      var resultEl = document.getElementById('result');
+      resultEl.innerHTML =
+        userFiledBanner +
+
+        '<div class="status-header">' +
+          '<div class="sh-left">' +
+            '<h2>' + c.icon + ' ' + c.id + '</h2>' +
+            '<p>' + c.type + ' · ' + c.location + '</p>' +
+          '</div>' +
+          '<span class="status-pill ' + pillClass + '">' + c.status + '</span>' +
+        '</div>' +
+
+        '<div class="progress-card">' +
+          '<div class="progress-top"><span>Overall Progress</span><strong>' + c.progress + '%</strong></div>' +
+          '<div class="progress-track"><div class="progress-fill ' + fillClass + '" id="prog-bar" style="width:0%"></div></div>' +
+          '<div class="progress-steps"><span>Filed</span><span>Verified</span><span>Assigned</span><span>In Progress</span><span>QC</span><span>Resolved</span></div>' +
+        '</div>' +
+
+        '<div class="eta-grid">' +
+          '<div class="eta-box"><span class="eta-icon">📅</span><div class="eta-label">Filed On</div><div class="eta-val">' + c.filed + '</div></div>' +
+          '<div class="eta-box"><span class="eta-icon">⏱️</span><div class="eta-label">Days Since Filed</div><div class="eta-val blue">' + (c.daysFiled || 0) + ' days</div></div>' +
+          '<div class="eta-box"><span class="eta-icon">🎯</span><div class="eta-label">Est. Resolution</div><div class="eta-val ' + (c.status === 'Resolved' ? 'green' : 'amber') + '">' + c.etaDays + '</div></div>' +
+          '<div class="eta-box"><span class="eta-icon">⚠️</span><div class="eta-label">Severity</div><div class="eta-val" style="color:' + sevColor + ';">' + c.severity + '</div></div>' +
+        '</div>' +
+
+        '<div class="info-grid">' +
+          '<div class="info-box"><div class="ib-label">Ward</div><div class="ib-val">' + c.ward + '</div></div>' +
+          '<div class="info-box"><div class="ib-label">City</div><div class="ib-val">' + c.city + '</div></div>' +
+          '<div class="info-box"><div class="ib-label">Assigned To</div><div class="ib-val">' + c.assignedTo + '</div></div>' +
+        '</div>' +
+
+        '<div class="dept-card">' +
+          '<div class="dept-left">' +
+            '<div class="dept-icon">' + c.deptIcon + '</div>' +
+            '<div class="dept-info"><h4>' + c.assignedTo + '</h4><p>Contact them directly for urgent updates</p></div>' +
+          '</div>' +
+          '<div class="dept-contacts">' +
+            '<a href="tel:' + c.deptPhone + '" class="dept-contact-btn">📞 ' + c.deptPhone + '</a>' +
+            '<a href="mailto:' + c.deptEmail + '" class="dept-contact-btn">✉️ ' + c.deptEmail + '</a>' +
+          '</div>' +
+        '</div>' +
+
+        '<div class="timeline-card">' +
+          '<div class="card-title">📍 Status Timeline</div>' +
+          '<div class="timeline">' + tlHTML + '</div>' +
+        '</div>' +
+
+        '<div class="updates-card">' +
+          '<div class="updates-header"><h3>🔔 Activity Log</h3></div>' +
+          updatesHTML +
+        '</div>' +
+
+        '<div class="map-card">' +
+          '<div class="map-card-header"><h3>🗺️ Issue Location</h3><span style="font-size:12px;color:#7A8BAA;">' + c.location + '</span></div>' +
+          '<div id="complaint-map"></div>' +
+        '</div>' +
+
+        '<div class="photo-card">' +
+          '<div class="photo-card-header"><h3>📷 Attached Photos</h3></div>' +
+          '<div class="photo-grid">' + photoHTML + '</div>' +
+        '</div>' +
+
+        (c.nearby && c.nearby.length > 0 ?
+          '<div class="nearby-card">' +
+            '<div class="nearby-header"><h3>📍 Nearby Complaints</h3><span style="font-size:12px;color:#7A8BAA;">Same area</span></div>' +
+            nearbyHTML +
+          '</div>' : '') +
+
+        feedbackHTML +
+
+        '<div class="actions-row">' +
+          '<button class="btn-copy" id="copy-btn" onclick="copyID(\'' + c.id + '\')">📋 Copy ID</button>' +
+          '<button class="btn-outline" onclick="shareComplaint(\'' + c.id + '\')">🔗 Share</button>' +
+          '<a href="userprofile.html" class="btn-outline">← Dashboard</a>' +
+        '</div>';
+
+      resultEl.style.display = 'block';
+
+      /* Animate progress bar */
+      setTimeout(function() {
+        var bar = document.getElementById('prog-bar');
+        if (bar) { bar.style.transition = 'width 1.2s ease'; bar.style.width = c.progress + '%'; }
+      }, 200);
+
+      /* Init map */
+      setTimeout(function() {
+        if (map) { map.remove(); map = null; }
+        map = L.map('complaint-map', { zoomControl: true }).setView([c.lat, c.lng], 15);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(map);
+        L.marker([c.lat, c.lng])
+          .addTo(map)
+          .bindPopup('<b>' + c.id + '</b><br>' + c.type + '<br><i>' + c.location + '</i>')
+          .openPopup();
+      }, 100);
+    }
+
+    /* ── Star rating ── */
+    var selectedRating = 0;
+    function rateStar(n) {
+      selectedRating = n;
+      var stars = document.querySelectorAll('.star');
+      for (var i = 0; i < stars.length; i++) stars[i].classList.toggle('active', i < n);
+    }
+
+    function submitFeedback() {
+      if (selectedRating === 0) { alert('Please select a star rating first.'); return; }
+      document.getElementById('feedback-thanks').style.display = 'block';
+      document.querySelector('.submit-feedback').style.display = 'none';
+    }
+
+    function shareComplaint(id) {
+      var url = window.location.href.split('?')[0] + '?id=' + id;
+      navigator.clipboard.writeText(url).then(function() {
+        alert('Link copied to clipboard!');
+      }).catch(function() {
+        alert('Complaint ID: ' + id);
+      });
+    }
+
+    function copyID(id) {
+      navigator.clipboard.writeText(id).then(function() {
+        var btn = document.getElementById('copy-btn');
+        btn.textContent = '✓ Copied!'; btn.classList.add('copied');
+        setTimeout(function() { btn.textContent = '📋 Copy ID'; btn.classList.remove('copied'); }, 2000);
+      });
+    }
+
+    /* ── Enter key ── */
+    document.getElementById('track-input').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') trackComplaint();
+    });
+
+    /* ── Auto-track from URL param ── */
+    (function() {
+      var params = new URLSearchParams(window.location.search);
+      var idParam = params.get('id');
+      if (idParam) {
+        document.getElementById('track-input').value = idParam;
+        trackComplaint();
+      }
+    })();
+
+  </script>
+</body>
+</html>
